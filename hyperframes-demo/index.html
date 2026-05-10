@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperFrames Demo — 人类编程进化史</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-secondary: #8b949e;
+      --accent: #58a6ff;
+      --accent-soft: #388bfd;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+    }
+    .container {
+      max-width: 960px;
+      width: 100%;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    p.desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .video-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    video {
+      width: 100%;
+      display: block;
+      border: none;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .info-card .label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .info-card .value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .scenes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .scene-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      font-size: 0.9rem;
+    }
+    .scene-item:last-child { border-bottom: none; }
+    .scene-time {
+      font-family: 'SF Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-soft);
+      background: rgba(56, 139, 253, 0.1);
+      padding: 2px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      min-width: 72px;
+      text-align: center;
+    }
+    .scene-desc {
+      flex: 1;
+      color: var(--text);
+    }
+    .scene-icon {
+      font-size: 1.2rem;
+      width: 28px;
+      text-align: center;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .footer a:hover { text-decoration: underline; }
+    .badge {
+      display: inline-block;
+      background: rgba(56, 139, 253, 0.15);
+      color: var(--accent);
+      font-size: 0.75rem;
+      padding: 2px 10px;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎬 人类编程进化史</h1>
+      <p class="desc">
+        由 <strong>HyperFrames</strong>（HeyGen 开源）渲染 · HTML + GSAP 动画 → MP4
+      </p>
+      <span class="badge">npx hyperframes init · npm run render</span>
+    </header>
+
+    <div class="video-wrapper">
+      <video controls autoplay loop poster="">
+        <source src="hyperframes-demo.mp4" type="video/mp4">
+        您的浏览器不支持视频播放。
+      </video>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="label">时长</div>
+        <div class="value">15.3s</div>
+      </div>
+      <div class="info-card">
+        <div class="label">分辨率</div>
+        <div class="value">1920×1080</div>
+      </div>
+      <div class="info-card">
+        <div class="label">大小</div>
+        <div class="value">1.5 MB</div>
+      </div>
+      <div class="info-card">
+        <div class="label">帧数</div>
+        <div class="value">540 fps</div>
+      </div>
+    </div>
+
+    <div class="scenes">
+      <div class="scene-item">
+        <span class="scene-icon">🎬</span>
+        <span class="scene-time">0s — 3s</span>
+        <span class="scene-desc">标题 — 「人类编程进化史」淡入</span>
+      </div>
+      <div class="scene-item">
+        <span class="scene-icon">📇</span>
+        <span class="scene-time">3s — 7s</span>
+        <span class="scene-desc">穿孔纸带 — 最早的编程方式</span>
+      </div>
+      <div class="scene-item">
+        <span class="scene-icon">💻</span>
+        <span class="scene-time">7s — 11s</span>
+        <span class="scene-desc">高级语言 — C、Java、Python 诞生</span>
+      </div>
+      <div class="scene-item">
+        <span class="scene-icon">🤖</span>
+        <span class="scene-time">11s — 15s</span>
+        <span class="scene-desc">AI 纪元 — AI 自己写代码</span>
+      </div>
+      <div class="scene-item">
+        <span class="scene-icon">✨</span>
+        <span class="scene-time">15s — 18s</span>
+        <span class="scene-desc">结尾 — 「你正身处其中」</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      由 <a href="https://github.com/heygen-com/hyperframes" target="_blank">HyperFrames</a> 渲染 ·
+      查看 <a href="https://x.com/BTCqzy1/status/2051866228646691321" target="_blank">原始推文</a> ·
+      代码 @ <a href="https://github.com/rasbt/LLMs-from-scratch" target="_blank">rasbt/LLMs-from-scratch</a> ·
+      <a href="https://github.com/karpathy/nanoGPT" target="_blank">karpathy/nanoGPT</a>
+    </div>
+  </div>
+</body>
+</html>

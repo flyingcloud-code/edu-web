@@ -1,0 +1,2255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 小小实验室 - 单文件版</title>
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue2: #0ea5e9;
+      --green: #22c55e;
+      --orange: #f97316;
+      --violet: #8b5cf6;
+      --cyan: #06b6d4;
+      --text: #1e293b;
+      --muted: #64748b;
+      --card: rgba(255, 255, 255, 0.86);
+      --shadow: 0 20px 50px rgba(15, 23, 42, 0.14);
+      --soft-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+      --radius-xl: 36px;
+      --radius-lg: 28px;
+      --radius-md: 22px;
+      --border: rgba(255, 255, 255, 0.9);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-rounded, "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 0%, #dbeafe 0, transparent 35%),
+        radial-gradient(circle at 90% 10%, #fef3c7 0, transparent 32%),
+        linear-gradient(180deg, #f8fbff 0%, #eef7ff 100%);
+      overflow-x: hidden;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; border: 0; }
+
+    .app {
+      width: min(1320px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 34px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .bg-star {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      font-size: 34px;
+      animation: floatStar 3.8s ease-in-out infinite;
+      opacity: 0.9;
+    }
+    .bg-star.s1 { left: 7%; top: 14%; }
+    .bg-star.s2 { right: 10%; top: 22%; animation-delay: .7s; }
+    .bg-star.s3 { left: 14%; bottom: 10%; animation-delay: 1.2s; }
+    .bg-star.s4 { right: 12%; bottom: 12%; animation-delay: 1.7s; }
+
+    @keyframes floatStar {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      50% { transform: translateY(-12px) rotate(8deg); }
+    }
+
+    .nav {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 14px 18px;
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      background: rgba(255,255,255,.88);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: transparent;
+    }
+
+    .brand-icon {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      color: #fff;
+      font-size: 26px;
+      box-shadow: 0 10px 24px rgba(37,99,235,.28);
+    }
+
+    .brand-text {
+      font-weight: 1000;
+      font-size: clamp(20px, 2vw, 28px);
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+    .blue { color: var(--blue); }
+    .violet { color: var(--violet); }
+    .orange { color: var(--orange); }
+    .green { color: var(--green); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-btn {
+      padding: 12px 15px;
+      border-radius: 18px;
+      color: #334155;
+      background: transparent;
+      font-weight: 950;
+      transition: .18s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .nav-btn:hover { background: #f1f5f9; color: var(--blue); transform: translateY(-1px); }
+    .nav-btn.active { background: #dbeafe; color: #1d4ed8; box-shadow: inset 0 2px 8px rgba(30,64,175,.08); }
+
+    .page { display: none; animation: pageIn .22s ease both; }
+    .page.active { display: block; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 44px;
+      background: linear-gradient(135deg, #e0f2fe, #eff6ff 52%, #ede9fe);
+      box-shadow: var(--shadow);
+      padding: 38px;
+      margin-bottom: 22px;
+    }
+    .hero.learn { background: linear-gradient(135deg, #e0f2fe, #eff6ff 54%, #cffafe); }
+    .hero.predict { background: linear-gradient(135deg, #ede9fe, #f0f9ff 50%, #dbeafe); }
+    .hero.game { background: linear-gradient(135deg, #dcfce7, #f0f9ff 50%, #fef9c3); }
+    .hero.brain { background: linear-gradient(135deg, #ede9fe, #eff6ff 50%, #cffafe); }
+    .hero.parents { background: linear-gradient(135deg, #ffedd5, #fff 50%, #dbeafe); }
+
+    .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 32px; align-items: center; }
+    .hero h1 {
+      font-size: clamp(44px, 6vw, 76px);
+      line-height: 1.03;
+      margin: 0;
+      font-weight: 1000;
+      letter-spacing: -0.055em;
+    }
+    .hero p {
+      margin: 20px 0 0;
+      font-size: clamp(19px, 2.2vw, 27px);
+      line-height: 1.55;
+      color: #334155;
+      font-weight: 850;
+      max-width: 780px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 10px 15px;
+      margin-bottom: 18px;
+      background: rgba(255,255,255,.9);
+      color: #1d4ed8;
+      box-shadow: var(--soft-shadow);
+      font-weight: 950;
+    }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
+    .primary-btn, .secondary-btn, .success-btn, .ghost-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 26px;
+      padding: 15px 23px;
+      font-size: 20px;
+      font-weight: 1000;
+      color: #fff;
+      box-shadow: var(--soft-shadow);
+      transition: .18s ease;
+    }
+    .primary-btn { background: var(--blue); }
+    .secondary-btn { background: var(--orange); }
+    .success-btn { background: var(--green); }
+    .ghost-btn { color: #1d4ed8; background: #fff; border: 2px solid #bfdbfe; }
+    .primary-btn:hover, .secondary-btn:hover, .success-btn:hover, .ghost-btn:hover { transform: translateY(-3px); filter: brightness(.98); }
+    .primary-btn:disabled, .success-btn:disabled { cursor: not-allowed; background: #cbd5e1; transform: none; }
+
+    .hero-visual {
+      position: relative;
+      min-height: 360px;
+      border-radius: 36px;
+      background: rgba(255,255,255,.45);
+      overflow: hidden;
+      padding: 18px;
+    }
+
+    .float-word {
+      position: absolute;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 1000;
+      padding: 6px 10px;
+      border-radius: 15px;
+      box-shadow: var(--soft-shadow);
+      opacity: 0;
+      animation: wordFloat 6s linear infinite;
+      pointer-events: none;
+    }
+    .w1 { left: 22%; top: 78%; background: var(--blue); animation-delay: 0s; }
+    .w2 { left: 48%; top: 84%; background: var(--green); animation-delay: .6s; }
+    .w3 { left: 66%; top: 76%; background: var(--orange); animation-delay: 1.1s; }
+    .w4 { left: 32%; top: 88%; background: var(--violet); animation-delay: 1.7s; }
+    .w5 { left: 55%; top: 72%; background: #ec4899; animation-delay: 2.2s; }
+    @keyframes wordFloat {
+      0% { opacity: 0; transform: translateY(20px); }
+      15%, 72% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-155px); }
+    }
+
+    .tiny-card {
+      position: absolute;
+      background: #fff;
+      border-radius: 24px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: var(--soft-shadow);
+      font-weight: 1000;
+      color: #334155;
+    }
+    .tiny-card .emoji { font-size: 48px; line-height: 1; }
+    .tc1 { left: 18px; top: 36px; }
+    .tc2 { left: 70px; bottom: 38px; }
+    .tc3 { right: 32px; top: 28px; }
+
+    .mascot-wrap { position: relative; display: flex; align-items: center; justify-content: center; min-height: 310px; }
+    .speech {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 190px;
+      border: 2px solid #dbeafe;
+      border-radius: 28px;
+      background: #fff;
+      padding: 12px 18px;
+      text-align: center;
+      font-weight: 950;
+      color: #334155;
+      box-shadow: var(--soft-shadow);
+      z-index: 4;
+      animation: pop .35s ease both;
+    }
+    .speech::after {
+      content: "";
+      position: absolute;
+      bottom: -9px;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translateX(-50%) rotate(45deg);
+      background: #fff;
+      border-right: 2px solid #dbeafe;
+      border-bottom: 2px solid #dbeafe;
+    }
+    @keyframes pop { from { opacity: 0; transform: translate(-50%, 8px) scale(.95); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+
+    .robot {
+      position: relative;
+      width: 190px;
+      height: 190px;
+      margin-top: 62px;
+      animation: robotBob 3s ease-in-out infinite;
+    }
+    .robot.md { width: 150px; height: 150px; }
+    .robot.sm { width: 105px; height: 105px; }
+    @keyframes robotBob {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+    .antenna { position: absolute; left: 50%; top: 0; width: 5px; height: 22px; transform: translateX(-50%); background: #60a5fa; border-radius: 999px; }
+    .antenna::before { content: ""; position: absolute; left: 50%; top: -8px; width: 17px; height: 17px; transform: translateX(-50%); background: #38bdf8; border-radius: 50%; box-shadow: var(--soft-shadow); }
+    .head {
+      position: absolute; left: 12%; right: 12%; top: 18px; height: 58%;
+      border: 4px solid #bfdbfe; border-radius: 40px;
+      background: linear-gradient(180deg, #fff, #dff5ff);
+      box-shadow: var(--shadow);
+    }
+    .ear { position: absolute; top: 46%; width: 22px; height: 42px; transform: translateY(-50%); background: #93c5fd; }
+    .ear.left { left: -18px; border-radius: 18px 0 0 18px; }
+    .ear.right { right: -18px; border-radius: 0 18px 18px 0; }
+    .face {
+      position: absolute; left: 16%; right: 16%; top: 28%; height: 43%;
+      background: #0f172a; border-radius: 28px; box-shadow: inset 0 0 20px rgba(0,0,0,.45);
+    }
+    .eye { position: absolute; top: 35%; width: 13px; height: 18px; background: #67e8f9; border-radius: 50%; box-shadow: 0 0 12px rgba(103,232,249,.95); }
+    .eye.left { left: 23%; }
+    .eye.right { right: 23%; }
+    .mouth { position: absolute; left: 50%; bottom: 20%; width: 36px; height: 14px; transform: translateX(-50%); border-bottom: 4px solid #a5f3fc; border-radius: 0 0 20px 20px; }
+    .body {
+      position: absolute; left: 21%; right: 21%; bottom: 0; height: 34%;
+      border: 4px solid #bfdbfe; border-radius: 34px;
+      background: linear-gradient(180deg, #fff, #dbeafe);
+      box-shadow: var(--soft-shadow);
+    }
+    .heart { position: absolute; left: 50%; top: 28%; transform: translateX(-50%); font-size: 24px; animation: heartPulse 1.4s ease infinite; }
+    @keyframes heartPulse { 0%,100% { opacity: .55; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.12); } }
+    .arm { position: absolute; bottom: 25%; width: 58px; height: 36px; border-radius: 999px; background: linear-gradient(90deg, #bfdbfe, #fff); box-shadow: var(--soft-shadow); }
+    .arm.left { left: -2px; transform: rotate(-12deg); }
+    .arm.right { right: -4px; transform: rotate(-28deg); }
+
+    .feature-grid, .two-grid, .three-grid, .four-grid { display: grid; gap: 20px; }
+    .feature-grid { grid-template-columns: repeat(4, 1fr); margin-bottom: 22px; }
+    .two-grid { grid-template-columns: repeat(2, 1fr); }
+    .three-grid { grid-template-columns: 1fr 1.35fr .95fr; }
+    .four-grid { grid-template-columns: repeat(4, 1fr); }
+
+    .card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .feature-card {
+      min-height: 170px;
+      text-align: left;
+      border: 1px solid #fff;
+      border-radius: 32px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      transition: .18s ease;
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    }
+    .feature-card:hover { transform: translateY(-5px); }
+    .feature-card.greenish { background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+    .feature-card.purplish { background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+    .feature-card .big-icon { font-size: 50px; }
+    .feature-card h3, .card h2 { margin: 12px 0 0; font-size: 26px; font-weight: 1000; }
+    .feature-card p, .card p { margin: 8px 0 0; color: var(--muted); font-weight: 750; line-height: 1.5; }
+
+    .module-label {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 16px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 950;
+      margin-bottom: 10px;
+    }
+    .module-label.purple { background: #ede9fe; color: #6d28d9; }
+
+    .mini-pipeline { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 24px; }
+    .mini-stack { position: relative; width: 130px; height: 120px; }
+    .mini-stack .small-card { position: absolute; left: 18px; top: 10px; width: 82px; height: 95px; }
+    .small-card:nth-child(1) { transform: translate(0,0) rotate(-10deg); }
+    .small-card:nth-child(2) { transform: translate(12px,5px) rotate(-2deg); }
+    .small-card:nth-child(3) { transform: translate(24px,10px) rotate(7deg); }
+    .small-card:nth-child(4) { transform: translate(36px,15px) rotate(14deg); }
+    .small-card, .data-card {
+      border: 2px solid #fff;
+      border-radius: 24px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: var(--soft-shadow);
+      font-weight: 1000;
+      color: #334155;
+      transition: .18s ease;
+      user-select: none;
+    }
+    .data-card { min-width: 92px; position: relative; }
+    .data-card:hover { transform: translateY(-4px) scale(1.03); }
+    .data-card.selected { border-color: #3b82f6; box-shadow: 0 0 0 4px #dbeafe, var(--soft-shadow); }
+    .data-card.selected::after { content: "✅"; position: absolute; top: -12px; right: -10px; font-size: 22px; }
+    .data-card .emoji, .small-card .emoji { font-size: 40px; line-height: 1; }
+    .data-card .label, .small-card .label { margin-top: 8px; }
+    .c-dog { background: linear-gradient(135deg, #fef3c7, #ffedd5); }
+    .c-cat { background: linear-gradient(135deg, #ffedd5, #fef9c3); }
+    .c-apple { background: linear-gradient(135deg, #fee2e2, #ffe4e6); }
+    .c-tree { background: linear-gradient(135deg, #dcfce7, #d1fae5); }
+    .c-sun { background: linear-gradient(135deg, #fef9c3, #fde68a); }
+    .c-car { background: linear-gradient(135deg, #ede9fe, #dbeafe); }
+
+    .machine {
+      position: relative;
+      display: grid;
+      place-items: center;
+      height: 250px;
+      width: 100%;
+      max-width: 420px;
+      border: 4px solid #bfdbfe;
+      border-radius: 34px;
+      background: linear-gradient(180deg, #eff6ff, #cffafe);
+      box-shadow: var(--shadow);
+      margin: 20px auto 0;
+    }
+    .machine.compact { width: 132px; height: 132px; margin: 0; }
+    .machine-label {
+      position: absolute; top: -18px;
+      padding: 9px 22px;
+      border-radius: 16px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 1000;
+      box-shadow: var(--soft-shadow);
+    }
+    .brain-screen {
+      display: grid;
+      place-items: center;
+      width: 235px;
+      height: 150px;
+      border-radius: 30px;
+      background: #0f172a;
+      color: #a5f3fc;
+      font-size: 70px;
+      box-shadow: inset 0 0 30px rgba(0,0,0,.5);
+    }
+    .machine.compact .brain-screen { width: 78px; height: 78px; font-size: 42px; }
+    .machine.active .brain-screen { animation: glow 1.2s ease-in-out infinite; }
+    @keyframes glow { 0%,100% { transform: scale(1); box-shadow: 0 0 0 #38bdf8, inset 0 0 30px rgba(0,0,0,.5); } 50% { transform: scale(1.04); box-shadow: 0 0 35px #38bdf8, inset 0 0 30px rgba(0,0,0,.5); } }
+    .machine-bars { position: absolute; bottom: 16px; display: flex; gap: 8px; align-items: end; }
+    .bar-dot { width: 16px; height: 8px; border-radius: 99px; background: #3b82f6; }
+    .machine.active .bar-dot:nth-child(1) { animation: barAnim .8s ease-in-out infinite; }
+    .machine.active .bar-dot:nth-child(2) { animation: barAnim .8s ease-in-out .18s infinite; }
+    .machine.active .bar-dot:nth-child(3) { animation: barAnim .8s ease-in-out .36s infinite; }
+    @keyframes barAnim { 0%,100% { height: 8px; } 50% { height: 30px; } }
+    .phase-bubble {
+      position: absolute; bottom: 48px;
+      padding: 8px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.94);
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 1000;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .step-card {
+      position: relative;
+      border-radius: 28px;
+      background: #f8fafc;
+      box-shadow: inset 0 1px 8px rgba(15,23,42,.05);
+      padding: 20px;
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 18px;
+      color: #fff;
+      font-size: 24px;
+      font-weight: 1000;
+      margin-bottom: 12px;
+    }
+    .step-card h3 { margin: 0; font-size: 24px; font-weight: 1000; }
+    .step-card p { margin: 6px 0 0; color: #475569; font-weight: 750; }
+    .step-arrow { position: absolute; right: -20px; top: 50%; transform: translateY(-50%); color: #60a5fa; font-size: 24px; }
+
+    .train-bg { position: relative; overflow: hidden; }
+    .train-bg::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 30% 10%, rgba(59,130,246,.15), transparent 35%), radial-gradient(circle at 80% 30%, rgba(34,197,94,.15), transparent 35%);
+      pointer-events: none;
+    }
+    .train-bg > * { position: relative; z-index: 1; }
+    .data-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 13px; margin-top: 20px; }
+    .practice-grid { display: grid; grid-template-columns: 1fr auto 1.3fr; align-items: center; gap: 20px; margin-top: 20px; }
+    .arrow-moving { font-size: 44px; color: #3b82f6; }
+    .arrow-moving.active { animation: arrowMove .8s ease-in-out infinite; }
+    @keyframes arrowMove { 0%,100% { transform: translateX(0); } 50% { transform: translateX(12px); } }
+
+    .status-row {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+      gap: 14px;
+      border-radius: 28px;
+      background: #eff6ff;
+      padding: 16px;
+      margin-top: 24px;
+    }
+    .progress { height: 16px; min-width: 220px; flex: 1; border-radius: 999px; background: #fff; overflow: hidden; box-shadow: inset 0 2px 6px rgba(15,23,42,.08); }
+    .progress > div { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #22c55e); transition: width .35s ease; }
+
+    .result-card {
+      border-radius: 24px;
+      background: #fff;
+      padding: 16px;
+      box-shadow: var(--soft-shadow);
+      margin-top: 14px;
+      animation: slideIn .22s ease both;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+    .result-main { display: flex; align-items: center; gap: 12px; }
+    .result-emoji { font-size: 40px; }
+    .result-label { font-size: 20px; font-weight: 1000; }
+    .result-check { margin-left: auto; font-size: 24px; }
+    .result-message { margin-top: 8px; color: #64748b; font-size: 14px; font-weight: 850; }
+    .note { margin-top: 20px; border-radius: 24px; background: #fef3c7; color: #92400e; padding: 16px; font-weight: 950; box-shadow: inset 0 1px 8px rgba(146,64,14,.08); }
+    .note.blue { background: #dbeafe; color: #1e40af; }
+
+    .sentence-box {
+      border-radius: 28px;
+      background: #fff;
+      padding: 26px;
+      text-align: center;
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 1000;
+      box-shadow: var(--soft-shadow);
+    }
+    .choice-list { margin-top: 16px; display: grid; gap: 12px; }
+    .choice-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      text-align: left;
+      border: 2px solid transparent;
+      border-radius: 24px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: var(--soft-shadow);
+      transition: .16s ease;
+    }
+    .choice-row:hover { border-color: #bfdbfe; transform: scale(1.005); }
+    .choice-row.user { border-color: #3b82f6; box-shadow: 0 0 0 4px #dbeafe, var(--soft-shadow); }
+    .choice-row.ai { border-color: #fb923c; box-shadow: 0 0 0 4px #ffedd5, var(--soft-shadow); }
+    .choice-emoji { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 18px; background: #f8fafc; font-size: 28px; box-shadow: inset 0 1px 8px rgba(15,23,42,.06); }
+    .choice-word { min-width: 92px; border-radius: 18px; padding: 9px 12px; color: #fff; background: var(--violet); text-align: center; font-size: 18px; font-weight: 1000; }
+    .choice-word.best { background: var(--green); }
+    .prob-track { height: 20px; flex: 1; overflow: hidden; border-radius: 999px; background: #f1f5f9; box-shadow: inset 0 1px 5px rgba(15,23,42,.08); }
+    .prob-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #93c5fd, #8b5cf6); transition: width .45s ease; }
+    .prob-fill.best { background: linear-gradient(90deg, #4ade80, #a3e635); }
+    .prob-num { width: 58px; text-align: right; font-size: 20px; font-weight: 1000; color: var(--violet); }
+    .prob-num.best { color: #16a34a; }
+    .tag { border-radius: 12px; padding: 5px 8px; font-size: 12px; font-weight: 1000; }
+    .tag.user { color: #1d4ed8; background: #dbeafe; }
+    .tag.ai { color: #c2410c; background: #ffedd5; }
+    .info-box { border-radius: 24px; background: #fff; padding: 16px; box-shadow: var(--soft-shadow); margin-top: 14px; }
+    .info-title { font-weight: 1000; }
+    .info-value { margin-top: 6px; color: #475569; font-size: 18px; font-weight: 850; }
+    .slider-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+    .slider-row input { flex: 1; accent-color: var(--blue); cursor: pointer; }
+
+    .drop-zone {
+      min-height: 240px;
+      border: 4px dashed #bfdbfe;
+      background: #eff6ff;
+      border-radius: 34px;
+      padding: 20px;
+      margin-top: 20px;
+      transition: .16s ease;
+    }
+    .drop-zone.over { border-color: #4ade80; background: #f0fdf4; }
+    .drop-empty { height: 200px; display: grid; place-items: center; text-align: center; color: #94a3b8; font-size: 20px; font-weight: 1000; }
+    .training-feedback { display: none; animation: pageIn .22s ease both; }
+    .training-feedback.show { display: block; }
+    .pill-list { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+    .pill { border-radius: 16px; padding: 9px 14px; font-weight: 1000; }
+    .pill.ok { color: #15803d; background: #dcfce7; }
+    .pill.no { color: #64748b; background: #f1f5f9; }
+
+    /* ===== AI 的大脑：LLM 语言大脑 ===== */
+    .brain-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .brain-wide-grid {
+      display: grid;
+      grid-template-columns: .95fr 1.05fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .llm-sentence-panel {
+      border-radius: 30px;
+      background: linear-gradient(135deg, #fff, #eff6ff);
+      padding: 20px;
+      box-shadow: var(--soft-shadow);
+      margin-top: 18px;
+    }
+    .llm-sentence {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 78px;
+      border-radius: 24px;
+      background: #fff;
+      padding: 16px;
+      box-shadow: inset 0 1px 10px rgba(15,23,42,.06);
+      font-size: 26px;
+      font-weight: 1000;
+    }
+    .word-token, .vector-token {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 16px;
+      padding: 9px 13px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 1000;
+      box-shadow: var(--soft-shadow);
+      animation: tokenPop .22s ease both;
+    }
+    .blank-token { background: #fef3c7; color: #92400e; }
+    .vector-row {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-top: 12px;
+      border-radius: 20px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: var(--soft-shadow);
+    }
+    .vector-dots { display: flex; gap: 7px; flex-wrap: wrap; }
+    .vector-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #60a5fa, #8b5cf6);
+      box-shadow: 0 4px 10px rgba(59,130,246,.2);
+    }
+    .token-why-card {
+      margin-top: 18px;
+      border-radius: 28px;
+      background: #fff;
+      padding: 16px;
+      box-shadow: var(--soft-shadow);
+    }
+    .token-why-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .token-why-head h3 {
+      margin: 0;
+      color: #1d4ed8;
+      font-size: 21px;
+      font-weight: 1000;
+    }
+    .token-mode-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 14px;
+    }
+    .token-mode-btn {
+      border: 2px solid transparent;
+      border-radius: 18px;
+      background: #f8fafc;
+      color: #475569;
+      padding: 9px 12px;
+      font-size: 14px;
+      font-weight: 1000;
+      box-shadow: inset 0 1px 8px rgba(15,23,42,.05);
+      transition: .16s ease;
+    }
+    .token-mode-btn:hover { transform: translateY(-2px); background: #eff6ff; }
+    .token-mode-btn.active { border-color: #3b82f6; color: #1d4ed8; background: #dbeafe; box-shadow: 0 0 0 4px #eff6ff; }
+    .token-demo-box {
+      margin-top: 14px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #f8fafc, #eff6ff);
+      padding: 15px;
+    }
+    .token-demo-pieces {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 12px;
+      align-items: center;
+    }
+    .token-piece {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      border-radius: 15px;
+      padding: 8px 12px;
+      background: #fff;
+      color: #1d4ed8;
+      box-shadow: var(--soft-shadow);
+      font-weight: 1000;
+      animation: tokenPop .2s ease both;
+    }
+    .token-piece.too-big { background: #fee2e2; color: #b91c1c; }
+    .token-piece.too-small { background: #fef3c7; color: #92400e; }
+    .token-piece.just-right { background: #dcfce7; color: #15803d; }
+    .token-demo-result {
+      margin-top: 12px;
+      border-radius: 18px;
+      background: #fff;
+      padding: 12px;
+      color: #475569;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+    .token-demo-result strong { color: #1d4ed8; }
+    .attention-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .attention-tab {
+      border-radius: 18px;
+      padding: 10px 13px;
+      background: #fff;
+      color: #475569;
+      box-shadow: var(--soft-shadow);
+      font-weight: 1000;
+      border: 2px solid transparent;
+      transition: .16s ease;
+    }
+    .attention-tab.active { border-color: #8b5cf6; color: #6d28d9; background: #f5f3ff; }
+    .attention-board {
+      position: relative;
+      min-height: 360px;
+      border-radius: 32px;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      overflow: hidden;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-top: 18px;
+      color: #e0f2fe;
+    }
+    .attention-token-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: relative;
+      z-index: 2;
+      margin-top: 16px;
+    }
+    .attention-token {
+      border-radius: 18px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.95);
+      color: #1e293b;
+      font-weight: 1000;
+      box-shadow: var(--soft-shadow);
+    }
+    .attention-token.target { background: #fef3c7; color: #92400e; box-shadow: 0 0 24px rgba(253,230,138,.55); }
+    .attention-bars { display: grid; gap: 12px; margin-top: 26px; position: relative; z-index: 2; }
+    .attention-bar-row { display: grid; grid-template-columns: 82px 1fr 50px; align-items: center; gap: 10px; }
+    .attention-word { font-weight: 1000; color: #e0f2fe; }
+    .attention-track { height: 18px; border-radius: 999px; background: rgba(255,255,255,.16); overflow: hidden; }
+    .attention-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #22d3ee, #a78bfa); box-shadow: 0 0 18px rgba(34,211,238,.45); }
+    .attention-percent { text-align: right; color: #fef3c7; font-weight: 1000; }
+    .probability-list { display: grid; gap: 12px; margin-top: 18px; }
+    .prob-card {
+      display: grid;
+      grid-template-columns: 70px 1fr 54px;
+      align-items: center;
+      gap: 12px;
+      border-radius: 22px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: var(--soft-shadow);
+      font-weight: 1000;
+    }
+    .prob-card-word { color: #6d28d9; font-size: 18px; }
+    .prob-card-track { height: 19px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+    .prob-card-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #60a5fa, #8b5cf6); }
+    .prob-card-num { color: #1d4ed8; text-align: right; }
+    .layer-road {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .layer-card {
+      position: relative;
+      border-radius: 24px;
+      background: #fff;
+      padding: 16px;
+      box-shadow: var(--soft-shadow);
+      min-height: 150px;
+      border: 2px solid transparent;
+      transition: .2s ease;
+    }
+    .layer-card.active { border-color: #3b82f6; transform: translateY(-4px); box-shadow: 0 0 0 4px #dbeafe, var(--soft-shadow); }
+    .layer-card h3 { margin: 0; font-size: 20px; font-weight: 1000; }
+    .layer-card p { margin-top: 8px; font-size: 14px; }
+    .layer-chip-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+    .layer-chip { border-radius: 13px; background: #dbeafe; color: #1d4ed8; padding: 6px 8px; font-size: 13px; font-weight: 1000; }
+    .model-city {
+      position: relative;
+      min-height: 300px;
+      border-radius: 32px;
+      background: linear-gradient(180deg,#0f172a,#1e293b);
+      overflow: hidden;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .city-skyline {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      gap: 8px;
+      min-height: 220px;
+    }
+    .city-tower {
+      width: var(--w, 32px);
+      height: var(--h, 90px);
+      border-radius: 12px 12px 4px 4px;
+      background: linear-gradient(180deg,#60a5fa,#2563eb);
+      box-shadow: 0 0 20px rgba(96,165,250,.35);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+      padding: 8px 6px;
+      align-content: start;
+      transition: .25s ease;
+    }
+    .city-dot { height: 8px; border-radius: 50%; background: #fef3c7; box-shadow: 0 0 9px rgba(253,230,138,.85); }
+    .model-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .model-stat {
+      border-radius: 20px;
+      background: #fff;
+      padding: 14px;
+      box-shadow: var(--soft-shadow);
+      text-align: center;
+      font-weight: 950;
+      color: #475569;
+    }
+    .model-stat strong { display: block; color: #1d4ed8; font-size: 22px; margin-bottom: 4px; }
+    .brain-warning {
+      margin-top: 18px;
+      border-radius: 24px;
+      background: #fffbeb;
+      color: #92400e;
+      padding: 16px;
+      font-weight: 950;
+      line-height: 1.5;
+      box-shadow: inset 0 1px 8px rgba(146,64,14,.08);
+    }
+
+    /* ===== 教 AI 说话：对话训练游戏 ===== */
+    .dialog-main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.08fr 1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+    .dialog-card-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .dialog-card {
+      position: relative;
+      width: 100%;
+      text-align: left;
+      border: 2px solid #fff;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #fff, #eff6ff);
+      padding: 14px;
+      box-shadow: var(--soft-shadow);
+      transition: .18s ease;
+      user-select: none;
+    }
+    .dialog-card:hover { transform: translateY(-3px); border-color: #bfdbfe; }
+    .dialog-card.selected { border-color: #3b82f6; box-shadow: 0 0 0 4px #dbeafe, var(--soft-shadow); }
+    .dialog-card.selected::after { content: "✅"; position: absolute; top: -10px; right: -8px; font-size: 22px; }
+    .dialog-card .dialog-top { display: flex; align-items: center; gap: 10px; }
+    .dialog-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: #fff;
+      font-size: 24px;
+      box-shadow: inset 0 1px 8px rgba(15,23,42,.06);
+      flex: 0 0 auto;
+    }
+    .dialog-group {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 1000;
+    }
+    .dialog-question { margin-top: 8px; color: #0f172a; font-size: 17px; font-weight: 1000; }
+    .dialog-answer { margin-top: 6px; color: #475569; font-size: 15px; font-weight: 850; line-height: 1.45; }
+    .dialog-answer strong { color: #16a34a; }
+    .dialog-selected-list { display: grid; gap: 10px; }
+    .mini-dialog-card {
+      border-radius: 20px;
+      background: #fff;
+      padding: 11px 12px;
+      box-shadow: var(--soft-shadow);
+      font-weight: 950;
+      color: #334155;
+    }
+    .token-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .token-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      padding: 8px 11px;
+      border-radius: 15px;
+      background: #fff;
+      color: #1d4ed8;
+      box-shadow: var(--soft-shadow);
+      font-weight: 1000;
+      animation: tokenPop .2s ease both;
+    }
+    @keyframes tokenPop { from { opacity: 0; transform: translateY(8px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .relation-card {
+      border-radius: 20px;
+      background: #fff;
+      padding: 13px;
+      margin-top: 11px;
+      box-shadow: var(--soft-shadow);
+    }
+    .relation-head { font-weight: 1000; color: #0f172a; }
+    .relation-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+    .relation-word {
+      min-width: 66px;
+      border-radius: 14px;
+      background: #f5f3ff;
+      color: #6d28d9;
+      padding: 7px 10px;
+      text-align: center;
+      font-weight: 1000;
+    }
+    .relation-track { height: 15px; flex: 1; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+    .relation-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #60a5fa, #8b5cf6); }
+    .relation-percent { width: 46px; text-align: right; color: #6d28d9; font-weight: 1000; }
+    .chat-lab { margin-top: 20px; }
+    .chat-grid {
+      display: grid;
+      grid-template-columns: .78fr 1.18fr .95fr;
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+    }
+    .question-button-list { display: grid; gap: 10px; }
+    .question-btn {
+      width: 100%;
+      text-align: left;
+      border: 2px solid transparent;
+      border-radius: 20px;
+      background: #fff;
+      padding: 13px;
+      box-shadow: var(--soft-shadow);
+      font-weight: 1000;
+      color: #334155;
+      transition: .16s ease;
+    }
+    .question-btn:hover { border-color: #bfdbfe; transform: translateY(-2px); }
+    .question-btn.trained { border-color: #bbf7d0; background: linear-gradient(135deg,#fff,#f0fdf4); }
+    .question-btn.untrained { opacity: .78; }
+    .question-btn.active { border-color: #3b82f6; box-shadow: 0 0 0 4px #dbeafe, var(--soft-shadow); }
+    .chat-window {
+      min-height: 280px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, #f8fafc, #eff6ff);
+      padding: 18px;
+      box-shadow: inset 0 1px 10px rgba(15,23,42,.06);
+    }
+    .chat-bubble {
+      max-width: 88%;
+      border-radius: 22px;
+      padding: 13px 15px;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.45;
+      box-shadow: var(--soft-shadow);
+    }
+    .chat-bubble.user { margin-left: auto; background: #2563eb; color: #fff; border-bottom-right-radius: 8px; }
+    .chat-bubble.ai { margin-right: auto; background: #fff; color: #0f172a; border-bottom-left-radius: 8px; }
+    .chat-bubble.warn { background: #fef3c7; color: #92400e; }
+    .typing-token {
+      display: inline-block;
+      margin: 3px 4px 3px 0;
+      padding: 5px 8px;
+      border-radius: 12px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      animation: tokenPop .2s ease both;
+    }
+    .step-list { display: grid; gap: 10px; }
+    .step-explain {
+      border-radius: 19px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: var(--soft-shadow);
+      color: #475569;
+      font-weight: 850;
+      line-height: 1.45;
+    }
+    .step-explain strong { color: #1d4ed8; }
+    .source-card {
+      margin-top: 14px;
+      border-radius: 20px;
+      padding: 13px;
+      background: #f0fdf4;
+      color: #166534;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    .footer {
+      margin-top: 30px;
+      border-radius: 32px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 1000;
+      box-shadow: var(--shadow);
+    }
+
+    @media (max-width: 1100px) {
+      .hero-grid, .two-grid, .three-grid, .practice-grid { grid-template-columns: 1fr; }
+      .feature-grid, .four-grid { grid-template-columns: repeat(2, 1fr); }
+      .step-arrow { display: none; }
+      .nav { align-items: flex-start; flex-direction: column; }
+      .nav-links { justify-content: flex-start; }
+    }
+    @media (max-width: 720px) {
+      .app { width: min(100% - 20px, 1320px); padding-top: 12px; }
+      .hero { padding: 26px 20px; border-radius: 34px; }
+      .feature-grid, .four-grid, .data-grid { grid-template-columns: 1fr; }
+      .choice-row { align-items: stretch; flex-wrap: wrap; }
+      .prob-track { flex-basis: 100%; }
+      .brand-text { font-size: 20px; }
+      .nav-btn { padding: 10px 11px; }
+    }
+
+    /* ===== Pad / 16:9 friendly controls ===== */
+    .view-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      border-radius: 18px;
+      background: rgba(241,245,249,.85);
+      border: 1px solid rgba(226,232,240,.95);
+    }
+    .view-btn {
+      padding: 8px 10px;
+      border-radius: 13px;
+      background: transparent;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 1000;
+      white-space: nowrap;
+      transition: .16s ease;
+    }
+    .view-btn:hover { background: #fff; color: var(--blue); }
+    .view-btn.active { background: #fff; color: #1d4ed8; box-shadow: var(--soft-shadow); }
+
+    body.layout-wide .app {
+      width: min(1500px, calc(100vw - 24px));
+      padding: 12px 0 20px;
+    }
+    body.layout-wide .nav {
+      top: 8px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 26px;
+      gap: 10px;
+    }
+    body.layout-wide .brand-icon { width: 40px; height: 40px; border-radius: 15px; font-size: 23px; }
+    body.layout-wide .brand-text { font-size: clamp(19px, 1.7vw, 24px); }
+    body.layout-wide .nav-btn { padding: 9px 11px; border-radius: 15px; font-size: 14px; }
+    body.layout-wide .hero {
+      padding: clamp(22px, 2vw, 30px);
+      border-radius: 34px;
+      margin-bottom: 14px;
+    }
+    body.layout-wide .hero h1 { font-size: clamp(38px, 4.4vw, 58px); }
+    body.layout-wide .hero p { margin-top: 12px; font-size: clamp(16px, 1.6vw, 22px); line-height: 1.42; }
+    body.layout-wide .badge { margin-bottom: 10px; padding: 8px 12px; }
+    body.layout-wide .hero-visual { min-height: 280px; }
+    body.layout-wide .mascot-wrap { min-height: 240px; }
+    body.layout-wide .robot:not(.md):not(.sm) { width: 155px; height: 155px; margin-top: 50px; }
+    body.layout-wide .card { padding: 18px; border-radius: 28px; }
+    body.layout-wide .feature-grid,
+    body.layout-wide .two-grid,
+    body.layout-wide .three-grid,
+    body.layout-wide .four-grid { gap: 14px; }
+    body.layout-wide .feature-card { min-height: 132px; padding: 18px; border-radius: 26px; }
+    body.layout-wide .feature-card .big-icon { font-size: 40px; }
+    body.layout-wide .feature-card h3,
+    body.layout-wide .card h2 { font-size: 22px; }
+    body.layout-wide .three-grid { grid-template-columns: .82fr 1.24fr .94fr !important; }
+    body.layout-wide .four-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    body.layout-wide .two-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    body.layout-wide #page-predict > .two-grid { grid-template-columns: 1.35fr .82fr !important; }
+    body.layout-wide .brain-grid,
+    body.layout-wide .brain-wide-grid { gap: 14px; }
+    body.layout-wide .big-neuron { width: 145px; height: 145px; font-size: 52px; }
+    body.layout-wide .light-cell { min-height: 96px; padding: 10px 6px; }
+    body.layout-wide .layer-road { gap: 10px; }
+    body.layout-wide .layer-card { min-height: 126px; padding: 12px; }
+    body.layout-wide .model-city { min-height: 235px; }
+    body.layout-wide .dialog-main-grid { grid-template-columns: .9fr 1.05fr 1fr !important; gap: 14px; }
+    body.layout-wide .chat-grid { grid-template-columns: .72fr 1.15fr .9fr !important; gap: 14px; }
+    body.layout-wide .dialog-card { padding: 11px; border-radius: 20px; }
+    body.layout-wide .dialog-question { font-size: 15px; }
+    body.layout-wide .dialog-answer { font-size: 13px; }
+    body.layout-wide .chat-window { min-height: 230px; padding: 14px; }
+    body.layout-wide .chat-bubble { font-size: 16px; }
+    body.layout-wide .practice-grid { grid-template-columns: .85fr 42px 1.08fr !important; gap: 14px; }
+    body.layout-wide .machine { height: 205px; max-width: 360px; }
+    body.layout-wide .brain-screen { width: 190px; height: 118px; font-size: 58px; }
+    body.layout-wide .data-grid { gap: 10px; margin-top: 14px; }
+    body.layout-wide .data-card { min-width: 78px; padding: 8px; border-radius: 20px; }
+    body.layout-wide .data-card .emoji,
+    body.layout-wide .small-card .emoji { font-size: 32px; }
+    body.layout-wide .sentence-box { padding: 20px; font-size: clamp(22px, 2.4vw, 30px); }
+    body.layout-wide .choice-list { gap: 9px; }
+    body.layout-wide .choice-row { padding: 10px; border-radius: 21px; }
+    body.layout-wide .footer { display: none; }
+
+    body.layout-pad .app {
+      width: min(1160px, calc(100vw - 24px));
+      padding-top: 14px;
+    }
+    body.layout-pad .nav {
+      align-items: center;
+      padding: 10px 12px;
+      gap: 10px;
+    }
+    body.layout-pad .nav-btn { padding: 9px 10px; font-size: 14px; }
+    body.layout-pad .hero { padding: 24px; border-radius: 36px; }
+    body.layout-pad .hero-grid { grid-template-columns: 1fr .62fr !important; gap: 18px; }
+    body.layout-pad .hero h1 { font-size: clamp(38px, 5vw, 58px); }
+    body.layout-pad .hero p { font-size: clamp(17px, 2vw, 22px); }
+    body.layout-pad .hero-visual { min-height: 300px; }
+    body.layout-pad .three-grid { grid-template-columns: .92fr 1.08fr !important; }
+    body.layout-pad .three-grid > .card:nth-child(3) { grid-column: 1 / -1; }
+    body.layout-pad #page-predict > .two-grid { grid-template-columns: 1.15fr .85fr !important; }
+    body.layout-pad .brain-grid,
+    body.layout-pad .brain-wide-grid { grid-template-columns: 1fr !important; }
+    body.layout-pad .layer-road { grid-template-columns: repeat(2, 1fr); }
+    body.layout-pad .model-stats { grid-template-columns: repeat(2, 1fr); }
+    body.layout-pad #page-game > .two-grid { grid-template-columns: 1fr 1fr !important; }
+      .dialog-main-grid { grid-template-columns: 1fr 1fr !important; }
+      .dialog-main-grid > .card:nth-child(3) { grid-column: 1 / -1; }
+      .chat-grid { grid-template-columns: 1fr 1fr !important; }
+      .chat-grid > .card:nth-child(3) { grid-column: 1 / -1; }
+    body.layout-pad .dialog-main-grid { grid-template-columns: 1fr 1fr !important; }
+    body.layout-pad .dialog-main-grid > .card:nth-child(3) { grid-column: 1 / -1; }
+    body.layout-pad .chat-grid { grid-template-columns: .8fr 1.2fr !important; }
+    body.layout-pad .chat-grid > .card:nth-child(3) { grid-column: 1 / -1; }
+    body.layout-pad .four-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    body.layout-pad .feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    body.layout-pad .practice-grid { grid-template-columns: .9fr 40px 1.1fr !important; }
+    body.layout-pad .machine { height: 220px; }
+
+    @media (min-width: 800px) and (max-width: 1180px) {
+      .app { width: min(1120px, calc(100vw - 24px)); padding-top: 14px; }
+      .nav { align-items: center; padding: 10px 12px; gap: 10px; }
+      .brand-icon { width: 40px; height: 40px; border-radius: 15px; font-size: 23px; }
+      .brand-text { font-size: 20px; }
+      .nav-btn { padding: 9px 10px; font-size: 14px; }
+      .view-tools { order: 3; width: 100%; justify-content: flex-start; }
+      .hero { padding: 24px; border-radius: 36px; margin-bottom: 16px; }
+      .hero-grid { grid-template-columns: 1fr .58fr !important; gap: 18px; }
+      .hero h1 { font-size: clamp(38px, 5.2vw, 58px); }
+      .hero p { margin-top: 12px; font-size: clamp(17px, 2vw, 22px); line-height: 1.45; }
+      .hero-visual { min-height: 295px; }
+      .mascot-wrap { min-height: 225px; }
+      .feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 14px; }
+      .feature-card { min-height: 140px; padding: 18px; border-radius: 28px; }
+      .feature-card .big-icon { font-size: 40px; }
+      .feature-card h3, .card h2 { font-size: 22px; }
+      .two-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .three-grid { grid-template-columns: .92fr 1.08fr !important; }
+      .three-grid > .card:nth-child(3) { grid-column: 1 / -1; }
+      .four-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+      .practice-grid { grid-template-columns: .9fr 38px 1.1fr !important; gap: 14px; }
+      #page-predict > .two-grid { grid-template-columns: 1.15fr .85fr !important; }
+      #page-game > .two-grid { grid-template-columns: 1fr 1fr !important; }
+      #training-feedback .two-grid { grid-template-columns: 240px 1fr !important; }
+      .card { padding: 18px; border-radius: 30px; }
+      .machine { height: 210px; }
+      .brain-screen { width: 190px; height: 118px; font-size: 58px; }
+      .data-grid { gap: 10px; }
+      .data-card { min-width: 80px; padding: 9px; border-radius: 21px; }
+      .data-card .emoji { font-size: 34px; }
+      .footer { margin-top: 18px; padding: 15px; }
+    }
+
+    @media (max-width: 900px) and (orientation: landscape) {
+      .app { width: min(100vw - 18px, 1120px); padding-top: 8px; }
+      .nav { position: static; padding: 8px 10px; margin-bottom: 10px; border-radius: 24px; }
+      .nav-btn { padding: 8px 9px; font-size: 13px; }
+      .view-tools { width: 100%; }
+      .hero { padding: 18px; border-radius: 28px; margin-bottom: 10px; }
+      .hero-grid { grid-template-columns: 1fr .48fr !important; }
+      .hero h1 { font-size: 36px; }
+      .hero p { font-size: 16px; margin-top: 8px; }
+      .hero-visual, .mascot-wrap { min-height: 210px; }
+      .robot, .robot.md { width: 120px; height: 120px; margin-top: 48px; }
+      .card { padding: 14px; border-radius: 24px; }
+      .footer { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-star s1">⭐</div>
+  <div class="bg-star s2">✨</div>
+  <div class="bg-star s3">☁️</div>
+  <div class="bg-star s4">🪴</div>
+
+  <div class="app">
+    <nav class="nav">
+      <button class="brand" data-page="home">
+        <div class="brand-icon">🤖</div>
+        <div class="brand-text"><span class="blue">AI</span> <span class="violet">小小</span><span class="orange">实验</span><span class="green">室</span></div>
+      </button>
+      <div class="nav-links">
+        <button class="nav-btn active" data-page="home">🏠 首页</button>
+        <button class="nav-btn" data-page="learn">📖 AI怎么学</button>
+        <button class="nav-btn" data-page="predict">💬 猜下一个词</button>
+        <button class="nav-btn" data-page="brain">🧠 AI的大脑</button>
+        <button class="nav-btn" data-page="game">🎮 教 AI 说话</button>
+        <button class="nav-btn" data-page="parents">👨‍👩‍👧‍👦 老师家长</button>
+      </div>
+      <div class="view-tools" aria-label="显示模式">
+        <button class="view-btn active" data-layout="auto" type="button">自适应</button>
+        <button class="view-btn" data-layout="pad" type="button">Pad</button>
+        <button class="view-btn" data-layout="wide" type="button">16:9</button>
+      </div>
+    </nav>
+
+    <main>
+      <section id="page-home" class="page active">
+        <div class="hero">
+          <span class="float-word w1">小狗</span><span class="float-word w2">天空</span><span class="float-word w3">苹果</span><span class="float-word w4">汽车</span><span class="float-word w5">喜欢</span>
+          <div class="hero-grid">
+            <div>
+              <div class="badge">✨ 三年级也能玩懂的 AI 原理</div>
+              <h1><span class="blue">AI</span> 小小<span class="orange">实验</span><span class="green">室</span></h1>
+              <p>像教小机器人认世界：给它看例子，让它找规律，再让它猜下一个词。</p>
+              <div class="btn-row">
+                <button class="primary-btn" data-page="learn">▶️ 开始探索</button>
+                <button class="secondary-btn" data-page="predict">🎮 试玩预测游戏</button>
+              </div>
+            </div>
+            <div class="hero-visual">
+              <div class="tiny-card tc1"><div class="emoji">🐶</div><div>小狗</div></div>
+              <div class="tiny-card tc2"><div class="emoji">🌳</div><div>树</div></div>
+              <div class="tiny-card tc3"><div class="emoji">🍎</div><div>苹果</div></div>
+              <div class="mascot-wrap">
+                <div class="speech">这是“小狗”！</div>
+                <div class="robot"><div class="antenna"></div><div class="head"><div class="ear left"></div><div class="ear right"></div><div class="face"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div></div><div class="arm left"></div><div class="arm right"></div><div class="body"><div class="heart">💙</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-grid">
+          <button class="feature-card" data-page="learn"><div class="big-icon">🃏</div><h3>看很多例子</h3><p>AI 先看很多图片、词语和句子。</p></button>
+          <button class="feature-card purplish" data-page="brain"><div class="big-icon">📡</div><h3>注意力小雷达</h3><p>词块会互相看，找出哪些词最重要。</p></button>
+          <button class="feature-card greenish" data-page="learn"><div class="big-icon">🔍</div><h3>找规律</h3><p>它会找出谁和谁经常一起出现。</p></button>
+          <button class="feature-card purplish" data-page="predict"><div class="big-icon">💬</div><h3>猜下一个词</h3><p>看到前面的词，猜最可能接着出现什么。</p></button>
+        </div>
+
+        <div class="two-grid">
+          <div class="card">
+            <span class="module-label">核心模块 1</span>
+            <h2 class="blue">AI 是怎么训练出来的？</h2>
+            <div class="mini-pipeline">
+              <div class="mini-stack" id="mini-stack-home"></div>
+              <div style="font-size:34px">➡️</div>
+              <div class="machine compact"><div class="machine-label">找规律</div><div class="brain-screen">🧠</div></div>
+              <div style="font-size:34px">➡️</div>
+              <div style="display:grid;place-items:center;border-radius:26px;background:#dcfce7;color:#15803d;padding:20px;box-shadow:var(--soft-shadow);font-weight:1000;font-size:20px">✅<br/>训练完成</div>
+            </div>
+          </div>
+          <div class="card">
+            <span class="module-label purple">核心模块 2</span>
+            <h2 class="violet">AI 怎么猜下一个词？</h2>
+            <div style="margin-top:22px;border-radius:28px;background:#f5f3ff;padding:20px">
+              <div class="sentence-box" style="font-size:22px;text-align:left">小猫喜欢吃____。</div>
+              <div style="margin-top:16px;display:grid;gap:12px" id="home-mini-predict"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-learn" class="page">
+        <div class="hero learn">
+          <button class="ghost-btn" data-page="home" style="font-size:16px;padding:10px 15px;margin-bottom:18px">← 返回学习地图</button>
+          <div class="hero-grid" style="grid-template-columns:1fr 320px">
+            <div>
+              <h1 class="blue">AI 是怎么训练出来的？</h1>
+              <p>AI 要先看很多例子，再慢慢找到规律。</p>
+            </div>
+            <div class="mascot-wrap" style="min-height:210px"><div class="speech">我不是背答案，我是在学规律哦！</div><div class="robot md"><div class="antenna"></div><div class="head"><div class="ear left"></div><div class="ear right"></div><div class="face"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div></div><div class="arm left"></div><div class="arm right"></div><div class="body"><div class="heart">💙</div></div></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:22px">
+          <div class="four-grid" id="learn-steps"></div>
+        </div>
+
+        <div class="three-grid">
+          <div class="card">
+            <h2 class="blue">1. 看很多例子</h2>
+            <p>图片卡和词语卡越多，AI 越容易发现规律。</p>
+            <div class="data-grid" id="learn-card-bank"></div>
+          </div>
+
+          <div class="card train-bg">
+            <h2 class="blue">2. 放进 AI 里练习</h2>
+            <div class="practice-grid">
+              <div class="data-grid" id="chosen-cards"></div>
+              <div class="arrow-moving" id="learn-arrow">➡️</div>
+              <div class="machine" id="learn-machine"><div class="machine-label">找规律</div><div class="brain-screen">🧠</div><div class="machine-bars"><div class="bar-dot"></div><div class="bar-dot"></div><div class="bar-dot"></div></div><div class="phase-bubble" id="learn-phase" style="display:none">正在看例子...</div></div>
+            </div>
+            <div class="status-row">
+              <div style="font-weight:1000;color:#1d4ed8">📖 本次训练 <span id="learn-count">0</span> 张卡片</div>
+              <div class="progress"><div id="learn-progress" style="width:49%"></div></div>
+              <button class="success-btn" id="learn-train-btn" style="font-size:18px;padding:12px 18px">▶️ 开始训练</button>
+            </div>
+          </div>
+
+          <div class="card" style="background:linear-gradient(135deg,#f5f3ff,#fff)">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <h2 class="violet" style="margin:0">3. 训练结果</h2>
+              <button class="ghost-btn" id="shuffle-result-btn" style="font-size:14px;padding:9px 13px">打乱结果</button>
+            </div>
+            <p id="learn-result-hint">现在还没训练，所以结果不可靠。</p>
+            <div id="learn-results"></div>
+            <div class="note">💡 重点：AI 不是天生会。训练里没见过的东西，它可能会猜错。</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-brain" class="page">
+        <div class="hero brain">
+          <div class="hero-grid" style="grid-template-columns:1fr 340px">
+            <div>
+              <div class="badge">🧠 LLM 的语言大脑</div>
+              <h1 class="violet">AI 说话前，词块会开小会</h1>
+              <p>LLM 不是靠一个小灯泡判断“小狗”。它会把文字切成词块，让词块们互相看，经过很多层，最后一起猜下一个词。</p>
+            </div>
+            <div class="mascot-wrap" style="min-height:230px"><div class="speech">词块们先开会，再一起猜下一个词！</div><div class="robot md"><div class="antenna"></div><div class="head"><div class="ear left"></div><div class="ear right"></div><div class="face"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div></div><div class="arm left"></div><div class="arm right"></div><div class="body"><div class="heart">📡</div></div></div></div>
+          </div>
+        </div>
+
+        <div class="brain-grid">
+          <div class="card">
+            <h2 class="blue">1. 词块入口</h2>
+            <p>AI 不能直接计算一整句话，所以它会先把文字切成“词块”。词块就像文字积木：不会太大，也不会太碎。</p>
+            <div class="llm-sentence-panel">
+              <div class="llm-sentence" id="token-sentence-view"></div>
+              <div id="vector-card-view" style="margin-top:16px"></div>
+            </div>
+            <div class="token-why-card">
+              <div class="token-why-head">
+                <h3>为什么要切成词块？</h3>
+                <span style="font-weight:950;color:#64748b">对比三种切法</span>
+              </div>
+              <div class="token-mode-tabs" id="token-mode-tabs"></div>
+              <div id="token-mode-demo"></div>
+            </div>
+            <div class="note blue">小提醒：token 不一定刚好是一个词，它可能是一个字、半个词、一个词，甚至一个标点。先记住：词块 = AI 能拿来计算的文字积木。</div>
+          </div>
+
+          <div class="card train-bg">
+            <h2 class="violet">2. 注意力小雷达</h2>
+            <p>空格要猜下一个词时，会回头看：前面哪些词最重要？</p>
+            <div class="attention-tabs" id="attention-tabs"></div>
+            <div class="attention-board" id="attention-board"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:20px">
+          <h2 class="blue">3. 一层一层的语言工厂</h2>
+          <p>每一层都像一次小组讨论：词块们先互相看看谁重要，再整理自己的意思。讨论很多轮以后，AI 就更知道下一个词该猜什么。</p>
+          <div class="btn-row" style="margin-top:16px"><button class="primary-btn" id="brain-run-layers" style="font-size:18px;padding:12px 18px">▶️ 让词块开小会</button></div>
+          <div class="layer-road" id="brain-layer-road"></div>
+          <div class="note blue">这是简化版动画。真正的大模型有更多层、更多计算，也复杂得多。</div>
+        </div>
+
+        <div class="brain-wide-grid">
+          <div class="card">
+            <h2 class="violet">4. 猜词出口和大模型</h2>
+            <p>语言工厂最后不会只吐出一个答案，而是给很多候选词一个概率。</p>
+            <div class="probability-list" id="brain-probability-list"></div>
+            <div class="slider-row">
+              <span style="font-weight:1000;color:#1d4ed8">小模型</span>
+              <input id="brain-size-slider" type="range" min="1" max="3" value="2" />
+              <span style="font-weight:1000;color:#8b5cf6">大模型</span>
+            </div>
+            <div class="model-stats" id="brain-model-stats"></div>
+            <div class="brain-warning">⚠️ 小提醒：大模型不是永远正确。它只是用更大的语言工厂，做更复杂的下一个词预测。</div>
+          </div>
+          <div class="model-city" id="brain-model-city"></div>
+        </div>
+      </section>
+
+      <section id="page-predict" class="page">
+        <div class="hero predict">
+          <div class="hero-grid" style="grid-template-columns:1fr 360px">
+            <div>
+              <h1 class="violet">AI 怎么猜下一个词？</h1>
+              <p>AI 会看前面的词，再按概率猜下一个词。</p>
+            </div>
+            <div class="mascot-wrap" style="min-height:220px"><div class="speech">我是在按概率猜，不是每次都选同一个哦！</div><div class="robot md"><div class="antenna"></div><div class="head"><div class="ear left"></div><div class="ear right"></div><div class="face"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div><div style="position:absolute;right:18px;top:10px;color:#a5f3fc;font-weight:1000">?</div></div></div><div class="arm left"></div><div class="arm right"></div><div class="body"><div class="heart">💙</div></div></div></div>
+          </div>
+        </div>
+
+        <div class="two-grid" style="grid-template-columns:1.5fr .85fr">
+          <div class="card">
+            <div class="badge" id="predict-title">☀️ 例题 1</div>
+            <div style="border:2px solid #dbeafe;background:linear-gradient(135deg,#fff,#eff6ff);border-radius:34px;padding:24px">
+              <div class="sentence-box" id="predict-sentence">今天放学后，我们一起去____。</div>
+              <div style="margin-top:18px;font-size:18px;font-weight:1000">第一步：你先猜一个词</div>
+              <div class="choice-list" id="choice-list"></div>
+            </div>
+            <div class="btn-row" style="display:grid;grid-template-columns:repeat(3,1fr)">
+              <button class="ghost-btn" id="next-sentence-btn">🔄 换一句</button>
+              <button class="secondary-btn" id="ai-guess-btn">🤖 让 AI 猜</button>
+              <div class="note" style="margin:0;text-align:center">创意越高，冷门词机会越大</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card" style="background:linear-gradient(135deg,#f5f3ff,#fff);margin-bottom:20px">
+              <h2 class="violet">AI 是这样想的：</h2>
+              <div class="info-box"><div class="info-title">你的猜测</div><div class="info-value" id="user-guess-view">你还没选</div></div>
+              <div class="info-box"><div class="info-title">AI 的猜测</div><div class="info-value" id="ai-guess-view">还没开始猜</div></div>
+              <div class="info-box"><div class="info-title">当前最可能的词</div><div class="info-value" id="best-choice-view">🌳 公园</div></div>
+              <div class="note blue" id="compare-text">点击“让 AI 猜”，看看它会不会和你一样。</div>
+            </div>
+            <div class="card">
+              <h2>🪄 猜词风格</h2>
+              <div class="slider-row">
+                <span style="font-weight:1000;color:#1d4ed8">🛡️ 更稳</span>
+                <input id="creative-slider" type="range" min="0" max="100" value="42" />
+                <span style="font-weight:1000;color:#ea580c">更有创意 💡</span>
+              </div>
+              <p id="creative-note" style="background:#f8fafc;border-radius:18px;padding:12px;font-size:14px;font-weight:850">现在 AI 在“稳”和“创意”之间做平衡。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-game" class="page">
+        <div class="hero game">
+          <div class="hero-grid" style="grid-template-columns:1fr 320px">
+            <div>
+              <div class="badge">🎮 迷你语言模型实验</div>
+              <h1 class="green">教 AI 说话</h1>
+              <p>把对话卡放进训练机，小机器人会把回答拆成词块，再一个词一个词生成回答。</p>
+            </div>
+            <div class="mascot-wrap" style="min-height:220px"><div class="speech">我说一句话，其实是在猜很多次下一个词！</div><div class="robot md"><div class="antenna"></div><div class="head"><div class="ear left"></div><div class="ear right"></div><div class="face"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div></div><div class="arm left"></div><div class="arm right"></div><div class="body"><div class="heart">💙</div></div></div></div>
+          </div>
+        </div>
+
+        <div class="dialog-main-grid">
+          <div class="card">
+            <h2 class="blue">1. 选择对话卡</h2>
+            <p>选几张问题和回答，教小机器人怎么说话。</p>
+            <div class="dialog-card-grid" id="game-card-bank"></div>
+          </div>
+
+          <div class="card train-bg">
+            <h2 class="green">2. 放进训练机</h2>
+            <p>训练时，AI 会读对话、拆词块、学习词语关系。</p>
+            <div class="drop-zone" id="drop-zone"><div class="drop-empty">👆<br/>把对话卡拖到这里</div></div>
+            <div class="machine" id="game-machine"><div class="machine-label">学说话</div><div class="brain-screen">🧠</div><div class="machine-bars"><div class="bar-dot"></div><div class="bar-dot"></div><div class="bar-dot"></div></div><div class="phase-bubble" id="game-phase-bubble">正在看对话...</div></div>
+            <div class="status-row">
+              <div style="font-weight:1000;color:#1d4ed8">💬 已选择 <span id="game-selected-count">0</span> 张对话卡</div>
+              <div class="progress"><div id="game-progress" style="width:0%"></div></div>
+              <button class="success-btn" id="game-train-btn" style="font-size:18px;padding:12px 18px">▶️ 开始训练</button>
+            </div>
+            <div class="info-box"><div class="info-title">训练状态</div><div style="margin-top:8px;color:#64748b;font-weight:850" id="game-phase-text">还没开始训练</div><div id="game-token-preview"></div></div>
+          </div>
+
+          <div class="card" style="background:linear-gradient(135deg,#f5f3ff,#fff)">
+            <h2 class="violet">3. AI 学到的说话规律</h2>
+            <p>训练完成后，这里会显示“看到这个词，后面常接什么”。</p>
+            <div id="game-feedback-content"></div>
+          </div>
+        </div>
+
+        <div class="card chat-lab">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap">
+            <div>
+              <h2 class="blue" style="margin:0">4. 来和 AI 聊一聊</h2>
+              <p>点击一个问题，看 AI 怎么一个词一个词生成回答。</p>
+            </div>
+            <div style="min-width:280px;flex:0 1 360px">
+              <div class="slider-row" style="margin-top:0">
+                <span style="font-weight:1000;color:#1d4ed8">🛡️ 更稳</span>
+                <input id="game-creativity-slider" type="range" min="0" max="100" value="42" />
+                <span style="font-weight:1000;color:#ea580c">更有创意 💡</span>
+              </div>
+              <p id="game-creativity-note" style="margin:8px 0 0;background:#f8fafc;border-radius:16px;padding:10px;font-size:13px;font-weight:850;color:#64748b">更稳更像考试，更有创意更像写故事。</p>
+            </div>
+          </div>
+
+          <div class="chat-grid">
+            <div class="card" style="box-shadow:none;background:#f8fafc">
+              <h2 style="font-size:22px;margin:0">问题按钮</h2>
+              <div class="question-button-list" id="chat-question-buttons"></div>
+            </div>
+            <div class="chat-window" id="chat-output"></div>
+            <div class="card" style="box-shadow:none;background:#f8fafc">
+              <h2 style="font-size:22px;margin:0">下一个词预测</h2>
+              <div id="chat-steps" class="step-list" style="margin-top:14px"></div>
+              <div id="chat-source"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="page-parents" class="page">
+        <div class="hero parents">
+          <h1 class="orange">老师家长说明</h1>
+          <p>这个网站不是教孩子写代码，而是用“看例子 → 找规律 → 做预测 → 自己检查”的方式理解 AI。</p>
+        </div>
+        <div class="feature-grid">
+          <div class="card"><h2 class="blue">核心比喻</h2><p>AI 像一个小机器人学生：看很多例子，慢慢学规律。</p></div>
+          <div class="card"><h2 class="blue">不要误导</h2><p>强调 AI 是概率预测，不是一定正确，也不是真的懂人类世界。</p></div>
+          <div class="card"><h2 class="blue">课堂玩法</h2><p>让孩子拖卡片、选答案、解释为什么，培养判断力。</p></div>
+        </div>
+        <div class="card">
+          <h2>建议课堂流程</h2>
+          <div class="four-grid" style="margin-top:18px">
+            <div class="step-card"><div style="font-size:24px;font-weight:1000;color:var(--orange)">5 分钟</div><p>用首页讲故事</p></div>
+            <div class="step-card"><div style="font-size:24px;font-weight:1000;color:var(--orange)">10 分钟</div><p>训练页拖卡片</p></div>
+            <div class="step-card"><div style="font-size:24px;font-weight:1000;color:var(--orange)">10 分钟</div><p>预测页猜词</p></div>
+            <div class="step-card"><div style="font-size:24px;font-weight:1000;color:var(--orange)">5 分钟</div><p>讨论 AI 会错吗</p></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">边玩边学，像做实验一样理解 AI 💙</footer>
+  </div>
+
+  <script>
+    const CARD_BANK = [
+      { id: "dog", label: "小狗", emoji: "🐶", cls: "c-dog" },
+      { id: "cat", label: "小猫", emoji: "🐱", cls: "c-cat" },
+      { id: "apple", label: "苹果", emoji: "🍎", cls: "c-apple" },
+      { id: "tree", label: "树", emoji: "🌳", cls: "c-tree" },
+      { id: "sun", label: "太阳", emoji: "☀️", cls: "c-sun" },
+      { id: "car", label: "汽车", emoji: "🚗", cls: "c-car" },
+    ];
+    const TEST_CARD_IDS = ["dog", "car", "apple"];
+    const PREDICTION_EXAMPLES = [
+      { id: "park", title: "例题 1", icon: "☀️", sentence: "今天放学后，我们一起去____。", choices: [
+        { word: "公园", emoji: "🌳", percent: 65, reason: "放学后常去玩" },
+        { word: "月球", emoji: "🌙", percent: 18, reason: "很有想象力" },
+        { word: "睡觉", emoji: "🛏️", percent: 10, reason: "也可能累了" },
+        { word: "海底", emoji: "🐠", percent: 7, reason: "不太常见" },
+      ]},
+      { id: "fish", title: "例题 2", icon: "🐾", sentence: "小猫最喜欢吃____。", choices: [
+        { word: "鱼", emoji: "🐟", percent: 70, reason: "猫和鱼经常一起出现" },
+        { word: "牛奶", emoji: "🥛", percent: 15, reason: "也比较常见" },
+        { word: "草", emoji: "🌱", percent: 8, reason: "概率较低" },
+        { word: "饼干", emoji: "🍪", percent: 7, reason: "不太像猫最喜欢" },
+      ]},
+      { id: "rain", title: "例题 3", icon: "☔", sentence: "外面下雨了，出门要带____。", choices: [
+        { word: "雨伞", emoji: "☂️", percent: 62, reason: "下雨和雨伞经常一起出现" },
+        { word: "书包", emoji: "🎒", percent: 16, reason: "上学时也常带" },
+        { word: "冰淇淋", emoji: "🍦", percent: 12, reason: "很有趣，但不常见" },
+        { word: "火箭", emoji: "🚀", percent: 10, reason: "非常有创意" },
+      ]},
+    ];
+
+    const DIALOG_CARDS = [
+      { id: "hello", group: "问候", icon: "👋", question: "你好", answerTokens: ["你好", "呀", "！"], displayAnswer: "你好 呀！" },
+      { id: "morning", group: "问候", icon: "🌞", question: "早上好", answerTokens: ["早上", "好", "！"], displayAnswer: "早上 好！" },
+      { id: "thanks", group: "问候", icon: "🙏", question: "谢谢你", answerTokens: ["不", "客气", "！"], displayAnswer: "不 客气！" },
+      { id: "like-apple", group: "喜好", icon: "🍎", question: "你喜欢什么？", answerTokens: ["我", "喜欢", "苹果", "。"], displayAnswer: "我 喜欢 苹果。" },
+      { id: "dog-like", group: "喜好", icon: "🐶", question: "小狗喜欢什么？", answerTokens: ["小狗", "喜欢", "骨头", "。"], displayAnswer: "小狗 喜欢 骨头。" },
+      { id: "cat-like", group: "喜好", icon: "🐱", question: "小猫喜欢什么？", answerTokens: ["小猫", "喜欢", "鱼", "。"], displayAnswer: "小猫 喜欢 鱼。" },
+      { id: "rain-life", group: "生活", icon: "☔", question: "下雨怎么办？", answerTokens: ["下雨", "要", "带", "雨伞", "。"], displayAnswer: "下雨 要 带 雨伞。" },
+      { id: "sunny-life", group: "生活", icon: "🌳", question: "天气好做什么？", answerTokens: ["我们", "去", "公园", "。"], displayAnswer: "我们 去 公园。" },
+      { id: "night-life", group: "生活", icon: "🌙", question: "晚上要做什么？", answerTokens: ["晚上", "要", "睡觉", "。"], displayAnswer: "晚上 要 睡觉。" },
+    ];
+
+    const state = {
+      page: "home",
+      layoutMode: "auto",
+      learnSelected: ["dog", "apple", "tree"],
+      learnCount: 0,
+      learnTrained: false,
+      learnPhase: 0,
+      shuffleTick: 0,
+      predictIndex: 0,
+      userGuess: null,
+      aiGuess: null,
+      creativity: 42,
+      gameBucket: [],
+      dragId: null,
+      gamePhase: "idle",
+      gameProgress: 0,
+      trainedDialogIds: [],
+      gameCreativity: 42,
+      brainExample: "cat-eat",
+      tokenMode: "token",
+      brainLayerStep: 0,
+      brainModelSize: 2,
+      chatQuestionId: null,
+      generatedAnswerTokens: [],
+      generationSteps: [],
+      currentSourceCardId: null,
+      timers: [],
+    };
+
+    function $(selector) { return document.querySelector(selector); }
+    function $all(selector) { return Array.from(document.querySelectorAll(selector)); }
+    function cardById(id) { return CARD_BANK.find(c => c.id === id); }
+    function clearTimers() { state.timers.forEach(t => clearTimeout(t)); state.timers = []; }
+    function setLater(fn, ms) { const t = setTimeout(fn, ms); state.timers.push(t); }
+
+    function cardHTML(card, selected = false, draggable = false, source = "") {
+      return `<button class="data-card ${card.cls} ${selected ? "selected" : ""}" data-card-id="${card.id}" ${draggable ? "draggable='true'" : ""} ${source ? `data-source='${source}'` : ""}>
+        <div class="emoji">${card.emoji}</div><div class="label">${card.label}</div>
+      </button>`;
+    }
+
+    function pickWrongGuess(testId, availableIds = [], offset = 0) {
+      const source = availableIds.length ? CARD_BANK.filter(c => availableIds.includes(c.id)) : CARD_BANK;
+      const pool = source.filter(c => c.id !== testId);
+      if (!pool.length) return null;
+      return pool[offset % pool.length];
+    }
+
+    function adjustDistribution(choices, creativity) {
+      const alpha = 2.4 - (creativity / 100) * 1.8;
+      let weighted = choices.map(c => ({ ...c, weight: Math.pow(c.percent / 100, alpha) }));
+      const total = weighted.reduce((sum, c) => sum + c.weight, 0);
+      let adjusted = weighted.map(c => ({ ...c, adjustedPercent: Math.max(1, Math.round((c.weight / total) * 100)) }));
+      const diff = 100 - adjusted.reduce((sum, c) => sum + c.adjustedPercent, 0);
+      if (adjusted.length) {
+        let maxIndex = adjusted.reduce((best, c, i, arr) => c.adjustedPercent > arr[best].adjustedPercent ? i : best, 0);
+        adjusted[maxIndex].adjustedPercent = Math.max(1, adjusted[maxIndex].adjustedPercent + diff);
+      }
+      return adjusted;
+    }
+
+    function weightedPick(choices, field = "adjustedPercent") {
+      const total = choices.reduce((sum, c) => sum + c[field], 0);
+      let r = Math.random() * total;
+      for (const c of choices) {
+        r -= c[field];
+        if (r <= 0) return c;
+      }
+      return choices[choices.length - 1];
+    }
+
+    function setLayout(mode) {
+      state.layoutMode = mode;
+      document.body.classList.toggle("layout-pad", mode === "pad");
+      document.body.classList.toggle("layout-wide", mode === "wide");
+      $all(".view-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.layout === mode));
+    }
+
+    function setPage(page) {
+      state.page = page;
+      $all(".page").forEach(el => el.classList.remove("active"));
+      $("#page-" + page).classList.add("active");
+      $all(".nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.page === page));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (page === "learn") renderLearn();
+      if (page === "brain") renderBrain();
+      if (page === "predict") renderPredict();
+      if (page === "game") renderGame();
+    }
+
+    function renderHome() {
+      $("#mini-stack-home").innerHTML = CARD_BANK.slice(0,4).map(c => `<div class="small-card ${c.cls}"><div class="emoji">${c.emoji}</div><div class="label">${c.label}</div></div>`).join("");
+      const rows = [["鱼",72,"#4ade80"],["牛奶",18,"#60a5fa"],["草",10,"#fb923c"]];
+      $("#home-mini-predict").innerHTML = rows.map(([word, pct, color]) => `<div style="display:flex;align-items:center;gap:12px"><div style="width:70px;border-radius:16px;background:#fff;padding:8px 10px;text-align:center;font-weight:1000;box-shadow:var(--soft-shadow)">${word}</div><div style="height:18px;flex:1;border-radius:999px;background:#fff;overflow:hidden"><div style="height:100%;width:${pct}%;background:${color};border-radius:999px"></div></div><div style="font-weight:1000;width:46px">${pct}%</div></div>`).join("");
+    }
+
+    function renderLearnSteps() {
+      const steps = [
+        ["1", "看例子", "AI 先看很多例子。", "#2563eb"],
+        ["2", "练习", "把例子放进 AI 里练习。", "#22c55e"],
+        ["3", "检查", "AI 检查自己答对了没有。", "#f97316"],
+        ["4", "变聪明", "答对越多，AI 越聪明。", "#8b5cf6"],
+      ];
+      $("#learn-steps").innerHTML = steps.map((s, i) => `<div class="step-card"><div class="step-num" style="background:${s[3]}">${s[0]}</div><h3>${s[1]}</h3><p>${s[2]}</p>${i < 3 ? `<div class="step-arrow">➡️</div>` : ""}</div>`).join("");
+    }
+
+    function getResultTestIds() {
+      // 结果区应该优先测试“刚刚放进去训练的卡片”，否则孩子会以为树明明训练了却没学会。
+      // 规则：先放入已选卡片，再补 1~2 张没训练过的卡片做对比，最多展示 3 张。
+      const selected = [...state.learnSelected];
+      const unselected = CARD_BANK.map(c => c.id).filter(id => !selected.includes(id));
+      const tests = [...selected, ...unselected].slice(0, 3);
+      return tests.length ? tests : TEST_CARD_IDS;
+    }
+
+    function learnResultRows() {
+      const testIds = getResultTestIds();
+      return testIds.map((id, idx) => {
+        const test = cardById(id);
+        if (!state.learnTrained) {
+          const wrong = pickWrongGuess(id, [], idx + state.shuffleTick + 1);
+          return { test, guess: wrong, correct: false, message: "还没训练，现在只是乱猜" };
+        }
+        if (state.learnSelected.includes(id)) {
+          return { test, guess: test, correct: true, message: "训练里见过，所以答对了" };
+        }
+        const wrong = pickWrongGuess(id, state.learnSelected, idx + state.shuffleTick + 1);
+        return { test, guess: wrong, correct: false, message: state.learnSelected.length ? "训练数据里没有它，所以还是不会" : "没有训练数据，所以不会" };
+      });
+    }
+
+    function renderLearn() {
+      renderLearnSteps();
+      $("#learn-card-bank").innerHTML = CARD_BANK.map(c => cardHTML(c, state.learnSelected.includes(c.id), false, "learn-bank")).join("");
+      const chosen = CARD_BANK.filter(c => state.learnSelected.includes(c.id));
+      $("#chosen-cards").innerHTML = chosen.length ? chosen.map(c => cardHTML(c, true)).join("") : `<div style="grid-column:1/-1;border:2px dashed #cbd5e1;border-radius:28px;padding:34px;text-align:center;color:#94a3b8;font-weight:1000">先选几张卡片</div>`;
+      $("#learn-count").textContent = state.learnSelected.length;
+      $("#learn-progress").style.width = state.learnSelected.length ? Math.min(96, 18 + state.learnSelected.length * 14) + "%" : "0%";
+      $("#learn-machine").classList.toggle("active", state.learnPhase > 0);
+      $("#learn-arrow").classList.toggle("active", state.learnPhase > 0);
+      $("#learn-phase").style.display = state.learnPhase > 0 ? "block" : "none";
+      $("#learn-phase").textContent = state.learnPhase === 1 ? "正在看例子..." : state.learnPhase === 2 ? "正在找规律..." : "检查答案中...";
+      $("#learn-train-btn").disabled = !state.learnSelected.length || state.learnPhase > 0;
+      $("#learn-train-btn").innerHTML = state.learnPhase > 0 ? "▶️ 训练中..." : "▶️ 开始训练";
+      $("#learn-result-hint").textContent = state.learnTrained ? "训练完成后，会先测试你刚刚训练过的卡片，再测试没训练过的卡片。" : "现在还没训练，所以结果不可靠。";
+      $("#learn-results").innerHTML = learnResultRows().map(row => `<div class="result-card"><div class="result-main"><div class="result-emoji">${row.test.emoji}</div><div class="result-label"><span style="color:#64748b;font-size:14px">测试</span> ${row.test.label} <span style="color:#94a3b8">→</span> <span style="color:#64748b;font-size:14px">AI猜</span> ${row.guess ? row.guess.label : "？"}</div><div class="result-check">${row.correct ? "✅" : "❌"}</div></div><div class="result-message">${row.message}</div></div>`).join("");
+
+      $all("[data-source='learn-bank']").forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.cardId;
+          state.learnSelected = state.learnSelected.includes(id) ? state.learnSelected.filter(x => x !== id) : [...state.learnSelected, id];
+          state.learnTrained = false;
+          renderLearn();
+        };
+      });
+    }
+
+    function startLearnTraining() {
+      if (!state.learnSelected.length || state.learnPhase > 0) return;
+      clearTimers();
+      state.learnTrained = false;
+      state.learnPhase = 1;
+      renderLearn();
+      setLater(() => { state.learnPhase = 2; renderLearn(); }, 700);
+      setLater(() => { state.learnPhase = 3; renderLearn(); }, 1500);
+      setLater(() => {
+        state.learnPhase = 0;
+        state.learnTrained = true;
+        state.learnCount = state.learnSelected.length;
+        renderLearn();
+      }, 2400);
+    }
+
+    function renderPredict() {
+      const example = PREDICTION_EXAMPLES[state.predictIndex];
+      const adjusted = adjustDistribution(example.choices, state.creativity);
+      const best = adjusted.reduce((a,b) => a.adjustedPercent > b.adjustedPercent ? a : b);
+      $("#predict-title").textContent = `${example.icon} ${example.title}`;
+      $("#predict-sentence").textContent = example.sentence;
+      $("#best-choice-view").textContent = `${best.emoji} ${best.word}`;
+      $("#user-guess-view").textContent = state.userGuess ? `${state.userGuess.emoji} ${state.userGuess.word}` : "你还没选";
+      $("#ai-guess-view").textContent = state.aiGuess ? `${state.aiGuess.emoji} ${state.aiGuess.word}` : "还没开始猜";
+      $("#choice-list").innerHTML = adjusted.map(choice => {
+        const isBest = choice.word === best.word;
+        const user = state.userGuess && state.userGuess.word === choice.word;
+        const ai = state.aiGuess && state.aiGuess.word === choice.word;
+        return `<button class="choice-row ${user ? "user" : ai ? "ai" : ""}" data-word="${choice.word}">
+          <div class="choice-emoji">${choice.emoji}</div>
+          <div class="choice-word ${isBest ? "best" : ""}">${choice.word}</div>
+          <div class="prob-track"><div class="prob-fill ${isBest ? "best" : ""}" style="width:${choice.adjustedPercent}%"></div></div>
+          <div class="prob-num ${isBest ? "best" : ""}">${choice.adjustedPercent}%</div>
+          ${user ? `<span class="tag user">我猜</span>` : ""}${ai ? `<span class="tag ai">AI</span>` : ""}
+        </button>`;
+      }).join("");
+      $all(".choice-row").forEach(btn => {
+        btn.onclick = () => {
+          state.userGuess = adjusted.find(c => c.word === btn.dataset.word);
+          renderPredict();
+        };
+      });
+      let comparisonText = "点击“让 AI 猜”，看看它会不会和你一样。";
+      if (state.aiGuess && !state.userGuess) comparisonText = `AI 选了“${state.aiGuess.word}”。你也可以先点一个词，再和 AI 对比。`;
+      if (state.aiGuess && state.userGuess && state.aiGuess.word === state.userGuess.word) comparisonText = `你和 AI 都选了“${state.aiGuess.word}”。`;
+      if (state.aiGuess && state.userGuess && state.aiGuess.word !== state.userGuess.word) comparisonText = `你选了“${state.userGuess.word}”，AI 选了“${state.aiGuess.word}”。这说明预测不一定只有一个答案。`;
+      $("#compare-text").textContent = comparisonText;
+      $("#creative-slider").value = state.creativity;
+      $("#creative-note").textContent = state.creativity < 35 ? "现在 AI 很保守：最常见的词会变得更粗、更容易被选中。" : state.creativity > 70 ? "现在 AI 更有创意：不那么常见的词也会变粗一些，有机会被选中。" : "现在 AI 在“稳”和“创意”之间做平衡。";
+    }
+
+    const LLM_EXAMPLES = [
+      {
+        id: "cat-eat",
+        icon: "🐱",
+        title: "小猫吃什么？",
+        tokens: ["小猫", "喜欢", "吃", "____"],
+        vectors: {
+          "小猫": ["#60a5fa", "#22c55e", "#facc15", "#8b5cf6"],
+          "喜欢": ["#facc15", "#60a5fa", "#fb923c", "#22c55e"],
+          "吃": ["#fb923c", "#06b6d4", "#22c55e", "#facc15"],
+        },
+        attention: [
+          { word: "小猫", percent: 45 },
+          { word: "喜欢", percent: 25 },
+          { word: "吃", percent: 30 },
+        ],
+        probs: [
+          { word: "鱼", percent: 65 },
+          { word: "牛奶", percent: 18 },
+          { word: "饼干", percent: 10 },
+          { word: "月球", percent: 7 },
+        ],
+        hint: "因为看到“小猫”和“吃”，AI 会觉得下一个词可能是“鱼”。"
+      },
+      {
+        id: "rain-bring",
+        icon: "☔",
+        title: "下雨带什么？",
+        tokens: ["下雨", "出门", "要", "带", "____"],
+        vectors: {
+          "下雨": ["#06b6d4", "#60a5fa", "#a78bfa", "#facc15"],
+          "出门": ["#22c55e", "#f97316", "#60a5fa", "#8b5cf6"],
+          "要": ["#facc15", "#f97316", "#06b6d4", "#22c55e"],
+          "带": ["#8b5cf6", "#60a5fa", "#22c55e", "#facc15"],
+        },
+        attention: [
+          { word: "下雨", percent: 35 },
+          { word: "出门", percent: 20 },
+          { word: "要", percent: 10 },
+          { word: "带", percent: 35 },
+        ],
+        probs: [
+          { word: "雨伞", percent: 70 },
+          { word: "书包", percent: 16 },
+          { word: "苹果", percent: 8 },
+          { word: "火箭", percent: 6 },
+        ],
+        hint: "因为看到“下雨”和“带”，AI 会觉得下一个词可能是“雨伞”。"
+      },
+      {
+        id: "night-sleep",
+        icon: "🌙",
+        title: "晚上要做什么？",
+        tokens: ["晚上", "困了", "要", "____"],
+        vectors: {
+          "晚上": ["#8b5cf6", "#0ea5e9", "#facc15", "#22c55e"],
+          "困了": ["#f97316", "#8b5cf6", "#60a5fa", "#06b6d4"],
+          "要": ["#facc15", "#f97316", "#06b6d4", "#22c55e"],
+        },
+        attention: [
+          { word: "晚上", percent: 40 },
+          { word: "困了", percent: 45 },
+          { word: "要", percent: 15 },
+        ],
+        probs: [
+          { word: "睡觉", percent: 72 },
+          { word: "刷牙", percent: 14 },
+          { word: "读书", percent: 9 },
+          { word: "游泳", percent: 5 },
+        ],
+        hint: "因为看到“晚上”和“困了”，AI 会觉得下一个词可能是“睡觉”。"
+      }
+    ];
+
+    const LLM_LAYERS = [
+      { title: "词块数字卡", icon: "🔤", text: "先把文字切成词块，再变成机器能算的数字。", chips: ["小猫", "喜欢", "吃"] },
+      { title: "注意力层", icon: "📡", text: "词块们互相看：谁对猜下一个词最重要？", chips: ["小猫 45%", "吃 30%"] },
+      { title: "小计算层", icon: "🧮", text: "把刚才看到的信息整理一下。", chips: ["动物", "吃什么"] },
+      { title: "猜词出口", icon: "🎯", text: "给候选词打分，选出下一个词。", chips: ["鱼 65%", "牛奶 18%"] },
+    ];
+
+    const TOKEN_MODES = [
+      {
+        id: "sentence",
+        icon: "🧱",
+        title: "整句话",
+        label: "整句话太大",
+        pieces: ["小猫喜欢吃鱼。"],
+        pieceClass: "too-big",
+        result: "如果把一句话当成一整块，每句话都像一张全新的大卡片。世界上的句子太多了，AI 很难学完。"
+      },
+      {
+        id: "char",
+        icon: "🔎",
+        title: "一个字一个字",
+        label: "一个字太碎",
+        pieces: ["小", "猫", "喜", "欢", "吃", "鱼", "。"],
+        pieceClass: "too-small",
+        result: "如果切得太碎，AI 要走很多步才知道“喜欢”“小猫”这些意思，学习会变慢。"
+      },
+      {
+        id: "token",
+        icon: "🟩",
+        title: "词块",
+        label: "词块刚刚好",
+        pieces: ["小猫", "喜欢", "吃", "鱼", "。"],
+        pieceClass: "just-right",
+        result: "词块像文字积木：可以重复使用，也方便变成数字。AI 就能用这些数字来计算和预测。"
+      }
+    ];
+
+    function currentTokenMode() {
+      return TOKEN_MODES.find(m => m.id === state.tokenMode) || TOKEN_MODES[2];
+    }
+
+    function currentLLMExample() {
+      return LLM_EXAMPLES.find(e => e.id === state.brainExample) || LLM_EXAMPLES[0];
+    }
+
+    function renderBrain() {
+      const ex = currentLLMExample();
+      const tokenMode = currentTokenMode();
+      $("#token-sentence-view").innerHTML = ex.tokens.map(t => `<span class="word-token ${t.includes("_") ? "blank-token" : ""}">${t}</span>`).join("");
+      $("#vector-card-view").innerHTML = ex.tokens.filter(t => !t.includes("_")).map(t => `<div class="vector-row"><strong>${t}</strong><div class="vector-dots">${(ex.vectors[t] || ["#60a5fa", "#22c55e", "#facc15", "#8b5cf6"]).map(color => `<span class="vector-dot" style="background:${color}"></span>`).join("")}</div></div>`).join("");
+      $("#token-mode-tabs").innerHTML = TOKEN_MODES.map(mode => `<button class="token-mode-btn ${state.tokenMode === mode.id ? "active" : ""}" data-token-mode="${mode.id}">${mode.icon} ${mode.title}</button>`).join("");
+      $("#token-mode-demo").innerHTML = `<div class="token-demo-box"><div style="font-weight:1000;color:#334155">${tokenMode.label}</div><div class="token-demo-pieces">${tokenMode.pieces.map(piece => `<span class="token-piece ${tokenMode.pieceClass}">${piece}</span>`).join("")}</div><div class="token-demo-result"><strong>结果：</strong>${tokenMode.result}</div></div>`;
+
+      $("#attention-tabs").innerHTML = LLM_EXAMPLES.map(item => `<button class="attention-tab ${state.brainExample === item.id ? "active" : ""}" data-attention-example="${item.id}">${item.icon} ${item.title}</button>`).join("");
+      $("#attention-board").innerHTML = `<div style="font-size:20px;font-weight:1000;color:#fef3c7">小雷达正在看：空格前面哪些词最重要？</div>
+        <div class="attention-token-row">${ex.tokens.map(t => `<span class="attention-token ${t.includes("_") ? "target" : ""}">${t}</span>`).join("")}</div>
+        <div class="attention-bars">${ex.attention.map(a => `<div class="attention-bar-row"><div class="attention-word">${a.word}</div><div class="attention-track"><div class="attention-fill" style="width:${a.percent}%"></div></div><div class="attention-percent">${a.percent}%</div></div>`).join("")}</div>
+        <div class="note blue" style="margin-top:18px;background:rgba(219,234,254,.95)">${ex.hint}</div>`;
+
+      $("#brain-layer-road").innerHTML = LLM_LAYERS.map((layer, idx) => `<div class="layer-card ${idx < state.brainLayerStep ? "active" : ""}"><h3>${layer.icon} ${layer.title}</h3><p>${layer.text}</p><div class="layer-chip-row">${layer.chips.map(chip => `<span class="layer-chip">${chip}</span>`).join("")}</div></div>`).join("");
+
+      $("#brain-probability-list").innerHTML = ex.probs.map(p => `<div class="prob-card"><div class="prob-card-word">${p.word}</div><div class="prob-card-track"><div class="prob-card-fill" style="width:${p.percent}%"></div></div><div class="prob-card-num">${p.percent}%</div></div>`).join("");
+
+      const sizeInfo = [null,
+        { name: "小模型", tokens: "少", heads: "少", layers: "浅", data: "少量" },
+        { name: "中模型", tokens: "更多", heads: "更多", layers: "更深", data: "很多" },
+        { name: "大模型", tokens: "很多", heads: "很多", layers: "很深", data: "海量" },
+      ][state.brainModelSize];
+      $("#brain-size-slider").value = state.brainModelSize;
+      $("#brain-model-stats").innerHTML = `<div class="model-stat"><strong>${sizeInfo.tokens}</strong>可处理词块</div><div class="model-stat"><strong>${sizeInfo.heads}</strong>注意力小雷达</div><div class="model-stat"><strong>${sizeInfo.layers}</strong>语言工厂层数</div><div class="model-stat"><strong>${sizeInfo.data}</strong>训练文字</div>`;
+      const towers = state.brainModelSize === 1 ? 5 : state.brainModelSize === 2 ? 9 : 14;
+      $("#brain-model-city").innerHTML = `<div style="position:relative;z-index:2;color:#e0f2fe;font-weight:1000;font-size:22px">${sizeInfo.name}：更大的语言工厂</div><div style="position:relative;z-index:2;color:#bfdbfe;font-weight:850;margin-top:8px">大模型 = 更多词块位置 + 更多注意力小雷达 + 更多层 + 更多训练文字</div><div class="city-skyline">${Array.from({ length: towers }).map((_, i) => {
+        const h = 70 + ((i * 37) % 110) + state.brainModelSize * 18;
+        const dots = Math.min(12, 4 + state.brainModelSize * 3);
+        return `<div class="city-tower" style="--h:${h}px;--w:${state.brainModelSize === 3 ? 38 : 34}px">${Array.from({ length: dots }).map(() => `<span class="city-dot"></span>`).join("")}</div>`;
+      }).join("")}</div>`;
+
+      $all("[data-attention-example]").forEach(btn => btn.onclick = () => { state.brainExample = btn.dataset.attentionExample; state.brainLayerStep = 0; renderBrain(); });
+      $all("[data-token-mode]").forEach(btn => btn.onclick = () => { state.tokenMode = btn.dataset.tokenMode; renderBrain(); });
+    }
+
+    function dialogById(id) { return DIALOG_CARDS.find(c => c.id === id); }
+
+    function dialogCardHTML(card, selected = false, draggable = false, source = "") {
+      return `<button class="dialog-card ${selected ? "selected" : ""}" data-dialog-id="${card.id}" ${draggable ? "draggable='true'" : ""} ${source ? `data-source='${source}'` : ""}>
+        <div class="dialog-top"><div class="dialog-icon">${card.icon}</div><span class="dialog-group">${card.group}</span></div>
+        <div class="dialog-question">${card.question}</div>
+        <div class="dialog-answer">→ <strong>${card.displayAnswer}</strong></div>
+      </button>`;
+    }
+
+    function miniDialogHTML(card) {
+      return `<div class="mini-dialog-card"><span style="font-size:20px">${card.icon}</span> <strong>${card.question}</strong><br><span style="color:#64748b">→ ${card.displayAnswer}</span></div>`;
+    }
+
+    function buildMiniLanguageModel(ids = state.trainedDialogIds) {
+      const cards = DIALOG_CARDS.filter(c => ids.includes(c.id));
+      const nextMap = {};
+      const firstMap = {};
+      cards.forEach(card => {
+        firstMap[card.id] = card.answerTokens[0];
+        for (let i = 0; i < card.answerTokens.length - 1; i++) {
+          const from = card.answerTokens[i];
+          const to = card.answerTokens[i + 1];
+          if (!nextMap[from]) nextMap[from] = {};
+          nextMap[from][to] = (nextMap[from][to] || 0) + 1;
+        }
+      });
+      return { cards, nextMap, firstMap };
+    }
+
+    function countsToChoices(counts, creativity = state.gameCreativity) {
+      const entries = Object.entries(counts || {});
+      if (!entries.length) return [];
+      const totalCount = entries.reduce((sum, item) => sum + item[1], 0);
+      const raw = entries.map(([word, count]) => ({ word, count, percent: Math.round((count / totalCount) * 100) }));
+      const alpha = 2.4 - (creativity / 100) * 1.8;
+      const weighted = raw.map(c => ({ ...c, weight: Math.pow(c.count, alpha) }));
+      const totalWeight = weighted.reduce((sum, c) => sum + c.weight, 0);
+      let adjusted = weighted.map(c => ({ ...c, adjustedPercent: Math.max(1, Math.round((c.weight / totalWeight) * 100)) }));
+      const diff = 100 - adjusted.reduce((sum, c) => sum + c.adjustedPercent, 0);
+      if (adjusted.length) {
+        const maxIndex = adjusted.reduce((best, c, i, arr) => c.adjustedPercent > arr[best].adjustedPercent ? i : best, 0);
+        adjusted[maxIndex].adjustedPercent = Math.max(1, adjusted[maxIndex].adjustedPercent + diff);
+      }
+      return adjusted;
+    }
+
+    function renderRules() {
+      if (state.gamePhase !== "done" || !state.trainedDialogIds.length) {
+        return `<div class="note blue">还没有说话规律。先选择几张对话卡，再点击“开始训练”。</div>`;
+      }
+      const model = buildMiniLanguageModel();
+      const importantKeys = Object.keys(model.nextMap).slice(0, 6);
+      const relationHTML = importantKeys.map(key => {
+        const choices = countsToChoices(model.nextMap[key], 42);
+        return `<div class="relation-card"><div class="relation-head">看到「${key}」后，AI 可能接：</div>${choices.map(c => `<div class="relation-row"><div class="relation-word">${c.word}</div><div class="relation-track"><div class="relation-fill" style="width:${c.percent}%"></div></div><div class="relation-percent">${c.percent}%</div></div>`).join("")}</div>`;
+      }).join("");
+      const pathHTML = model.cards.slice(0, 4).map(card => `<div class="source-card" style="background:#fff;color:#334155">${card.icon} ${card.answerTokens.join(" → ")}</div>`).join("");
+      return `${relationHTML || `<div class="note">训练太少，还看不出明显规律。</div>`}<div class="note blue">💡 重点：AI 说话时，会看前面的词，再猜下一个最可能的词。</div>${pathHTML}`;
+    }
+
+    function renderChatOutput() {
+      const selectedQuestion = state.chatQuestionId ? dialogById(state.chatQuestionId) : null;
+      if (!selectedQuestion) {
+        return `<div class="chat-bubble ai">先训练几张对话卡，再点左边的问题。我会一个词一个词说给你看。</div>`;
+      }
+      const userBubble = `<div class="chat-bubble user">你：${selectedQuestion.question}</div>`;
+      if (state.gamePhase !== "done" || !state.trainedDialogIds.length) {
+        return `${userBubble}<div class="chat-bubble ai warn">我还没学过对话，请先把对话卡放进训练机。</div>`;
+      }
+      if (!state.trainedDialogIds.includes(selectedQuestion.id)) {
+        return `${userBubble}<div class="chat-bubble ai warn">这个问题我还没学过。你可以先把这张对话卡放进训练机。</div>`;
+      }
+      const words = state.generatedAnswerTokens.length ? state.generatedAnswerTokens.map(t => `<span class="typing-token">${t}</span>`).join("") : `<span style="color:#94a3b8">准备生成回答...</span>`;
+      return `${userBubble}<div class="chat-bubble ai">AI：${words}</div>`;
+    }
+
+    function renderChatSteps() {
+      if (!state.chatQuestionId) return `<div class="step-explain">点一个问题后，这里会显示每一步怎么猜下一个词。</div>`;
+      if (state.gamePhase !== "done" || !state.trainedDialogIds.includes(state.chatQuestionId)) return `<div class="step-explain">还不能预测：这个问题没有训练过。</div>`;
+      if (!state.generationSteps.length) return `<div class="step-explain">点击问题后，AI 会开始逐词生成。</div>`;
+      return state.generationSteps.map((step, idx) => {
+        const choices = step.choices && step.choices.length ? step.choices.map(c => `${c.word} ${c.adjustedPercent || c.percent}%`).join(" / ") : "只有一个开头";
+        return `<div class="step-explain"><strong>第 ${idx + 1} 步：</strong>${step.reason}<br><span style="color:#64748b">候选：${choices}</span></div>`;
+      }).join("");
+    }
+
+    function renderChatSource() {
+      const card = state.currentSourceCardId ? dialogById(state.currentSourceCardId) : null;
+      if (!card || state.gamePhase !== "done" || !state.trainedDialogIds.includes(card.id)) return "";
+      return `<div class="source-card">我这样回答，是因为你教过我：<br>${card.icon} ${card.question} → ${card.displayAnswer}</div>`;
+    }
+
+    function renderGame() {
+      $("#game-card-bank").innerHTML = DIALOG_CARDS.map(c => dialogCardHTML(c, state.gameBucket.includes(c.id), true, "game-bank")).join("");
+      const bucketCards = DIALOG_CARDS.filter(c => state.gameBucket.includes(c.id));
+      $("#drop-zone").innerHTML = bucketCards.length ? `<div class="dialog-selected-list">${bucketCards.map(miniDialogHTML).join("")}</div>` : `<div class="drop-empty">👆<br/>把对话卡拖到这里</div>`;
+      $("#game-selected-count").textContent = state.gameBucket.length;
+      $("#game-train-btn").disabled = !state.gameBucket.length || !["idle", "done"].includes(state.gamePhase);
+      $("#game-train-btn").innerHTML = state.gamePhase === "idle" || state.gamePhase === "done" ? "▶️ 开始训练" : "▶️ 训练中...";
+      $("#game-progress").style.width = state.gameProgress + "%";
+      const phaseText = state.gamePhase === "loading" ? "正在读对话例子……" : state.gamePhase === "tokenizing" ? "正在把回答拆成词块……" : state.gamePhase === "pattern" ? "正在学习谁常常跟在谁后面……" : state.gamePhase === "done" ? "训练完成！我学会了一些说话规律。" : "还没开始训练";
+      $("#game-phase-text").textContent = phaseText;
+      $("#game-phase-bubble").textContent = state.gamePhase === "loading" ? "读对话" : state.gamePhase === "tokenizing" ? "拆词块" : state.gamePhase === "pattern" ? "连关系" : "学说话";
+      $("#game-phase-bubble").style.display = state.gamePhase !== "idle" ? "block" : "none";
+      $("#game-machine").classList.toggle("active", ["loading", "tokenizing", "pattern"].includes(state.gamePhase));
+      const previewCards = bucketCards.slice(0, 2);
+      if (state.gamePhase === "tokenizing" && previewCards.length) {
+        $("#game-token-preview").innerHTML = previewCards.map(card => `<div class="token-strip">${card.answerTokens.map(t => `<span class="token-chip">${t}</span>`).join("")}</div>`).join("");
+      } else if (state.gamePhase === "pattern" && previewCards.length) {
+        $("#game-token-preview").innerHTML = previewCards.map(card => `<div class="source-card" style="background:#fff;color:#334155">${card.answerTokens.join(" → ")}</div>`).join("");
+      } else {
+        $("#game-token-preview").innerHTML = "";
+      }
+      $("#game-feedback-content").innerHTML = renderRules();
+      $("#chat-question-buttons").innerHTML = DIALOG_CARDS.map(card => {
+        const trained = state.trainedDialogIds.includes(card.id);
+        const active = state.chatQuestionId === card.id;
+        return `<button class="question-btn ${trained ? "trained" : "untrained"} ${active ? "active" : ""}" data-chat-question="${card.id}">${card.icon} ${card.question}<br><span style="font-size:12px;color:${trained ? "#16a34a" : "#94a3b8"}">${trained ? "已训练，可以试聊" : "还没训练"}</span></button>`;
+      }).join("");
+      $("#chat-output").innerHTML = renderChatOutput();
+      $("#chat-steps").innerHTML = renderChatSteps();
+      $("#chat-source").innerHTML = renderChatSource();
+      $("#game-creativity-slider").value = state.gameCreativity;
+      $("#game-creativity-note").textContent = state.gameCreativity < 35 ? "更稳：更容易选择最高概率的词。" : state.gameCreativity > 70 ? "更有创意：低概率词也更有机会被选中。" : "更稳更像考试，更有创意更像写故事。";
+
+      $all("[data-source='game-bank']").forEach(btn => {
+        btn.onclick = () => addGameCard(btn.dataset.dialogId);
+        btn.ondragstart = () => { state.dragId = btn.dataset.dialogId; };
+      });
+      $all("[data-chat-question]").forEach(btn => {
+        btn.onclick = () => startDialogChat(btn.dataset.chatQuestion);
+      });
+    }
+
+    function resetGameTraining() {
+      state.gamePhase = "idle";
+      state.gameProgress = 0;
+      state.trainedDialogIds = [];
+      state.chatQuestionId = null;
+      state.generatedAnswerTokens = [];
+      state.generationSteps = [];
+      state.currentSourceCardId = null;
+      clearTimers();
+    }
+    function addGameCard(id) {
+      if (!state.gameBucket.includes(id)) state.gameBucket.push(id);
+      resetGameTraining();
+      renderGame();
+    }
+    function removeGameCard(id) {
+      state.gameBucket = state.gameBucket.filter(x => x !== id);
+      resetGameTraining();
+      renderGame();
+    }
+    function startGameTraining() {
+      if (!state.gameBucket.length || !["idle", "done"].includes(state.gamePhase)) return;
+      clearTimers();
+      state.chatQuestionId = null;
+      state.generatedAnswerTokens = [];
+      state.generationSteps = [];
+      state.currentSourceCardId = null;
+      state.gamePhase = "loading"; state.gameProgress = 15; state.trainedDialogIds = [];
+      renderGame();
+      setLater(() => { state.gamePhase = "tokenizing"; state.gameProgress = 42; renderGame(); }, 800);
+      setLater(() => { state.gamePhase = "pattern"; state.gameProgress = 72; renderGame(); }, 1700);
+      setLater(() => { state.gamePhase = "done"; state.gameProgress = 100; state.trainedDialogIds = [...state.gameBucket]; renderGame(); }, 2700);
+    }
+
+    function startDialogChat(questionId) {
+      clearTimers();
+      state.chatQuestionId = questionId;
+      state.currentSourceCardId = questionId;
+      state.generatedAnswerTokens = [];
+      state.generationSteps = [];
+      renderGame();
+      if (state.gamePhase !== "done" || !state.trainedDialogIds.includes(questionId)) return;
+      const sourceCard = dialogById(questionId);
+      const model = buildMiniLanguageModel();
+      let currentToken = null;
+      const maxSteps = 8;
+      for (let step = 0; step < maxSteps; step++) {
+        setLater(() => {
+          let chosen;
+          let choices;
+          let reason;
+          if (state.generatedAnswerTokens.length === 0) {
+            chosen = { word: sourceCard.answerTokens[0], adjustedPercent: 100, percent: 100 };
+            choices = [chosen];
+            reason = `看到问题「${sourceCard.question}」，先猜回答开头「${chosen.word}」。`;
+          } else {
+            const counts = model.nextMap[currentToken] || {};
+            choices = countsToChoices(counts, state.gameCreativity);
+            if (!choices.length) return;
+            chosen = weightedPick(choices);
+            reason = `看到前面的词「${currentToken}」，猜下一个词「${chosen.word}」。`;
+          }
+          state.generatedAnswerTokens.push(chosen.word);
+          state.generationSteps.push({ chosen: chosen.word, choices, reason });
+          currentToken = chosen.word;
+          renderGame();
+          if (["。", "！", "？"].includes(chosen.word)) clearTimers();
+        }, 550 * (step + 1));
+      }
+    }
+
+    function bindEvents() {
+      document.body.addEventListener("click", (e) => {
+        const layoutBtn = e.target.closest("[data-layout]");
+        if (layoutBtn) {
+          setLayout(layoutBtn.dataset.layout);
+          return;
+        }
+        const pageBtn = e.target.closest("[data-page]");
+        if (pageBtn) setPage(pageBtn.dataset.page);
+      });
+      $("#learn-train-btn").onclick = startLearnTraining;
+      $("#shuffle-result-btn").onclick = () => { state.shuffleTick += 1; state.learnTrained = false; renderLearn(); };
+      $("#next-sentence-btn").onclick = () => { state.predictIndex = (state.predictIndex + 1) % PREDICTION_EXAMPLES.length; state.userGuess = null; state.aiGuess = null; renderPredict(); };
+      $("#ai-guess-btn").onclick = () => { const adjusted = adjustDistribution(PREDICTION_EXAMPLES[state.predictIndex].choices, state.creativity); state.aiGuess = weightedPick(adjusted); renderPredict(); };
+      $("#creative-slider").oninput = (e) => { state.creativity = Number(e.target.value); state.aiGuess = null; renderPredict(); };
+      $("#game-train-btn").onclick = startGameTraining;
+      $("#game-creativity-slider").oninput = (e) => { state.gameCreativity = Number(e.target.value); state.generatedAnswerTokens = []; state.generationSteps = []; renderGame(); };
+      $("#brain-size-slider").oninput = (e) => { state.brainModelSize = Number(e.target.value); renderBrain(); };
+      $("#brain-run-layers").onclick = () => {
+        clearTimers();
+        state.brainLayerStep = 0;
+        renderBrain();
+        [1,2,3,4].forEach((step, idx) => setLater(() => { state.brainLayerStep = step; renderBrain(); }, 500 + idx * 520));
+      }; 
+
+      const dropZone = $("#drop-zone");
+      dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("over"); });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("over"));
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("over");
+        if (state.dragId) addGameCard(state.dragId);
+        state.dragId = null;
+      });
+    }
+
+    renderHome();
+    renderLearn();
+    renderBrain();
+    renderPredict();
+    renderGame();
+    bindEvents();
+    setLayout("auto");
+  </script>
+</body>
+</html>

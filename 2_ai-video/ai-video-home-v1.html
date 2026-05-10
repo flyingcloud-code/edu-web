@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 小小导演｜课堂版视频提示词生成器</title>
+  <style>
+    :root {
+      --bg: #fff7e8;
+      --panel: rgba(255,255,255,.93);
+      --ink: #243044;
+      --muted: #6b7280;
+      --line: #efd4a1;
+      --brand: #ff8a3d;
+      --brand2: #ffd166;
+      --blue: #4f9ad8;
+      --green: #4bbf9f;
+      --purple: #8b6fd9;
+      --pink: #ff7e9c;
+      --shadow: 0 14px 34px rgba(112, 73, 20, 0.14);
+      --radius: 24px;
+      --big-title: clamp(34px, 4.8vw, 64px);
+      --title: clamp(24px, 2.8vw, 34px);
+      --text: 17px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 4%, rgba(255, 209, 102, .36), transparent 24%),
+        radial-gradient(circle at 90% 8%, rgba(79, 154, 216, .22), transparent 26%),
+        radial-gradient(circle at 60% 105%, rgba(255, 126, 156, .16), transparent 34%),
+        linear-gradient(135deg, #fff8e7 0%, #fff2dc 45%, #fff8ef 100%);
+    }
+
+    body.presentation {
+      --big-title: clamp(42px, 5.6vw, 78px);
+      --title: clamp(30px, 3.3vw, 44px);
+      --text: 20px;
+    }
+
+    body.student-mode .teacher-only { display: none !important; }
+    body.student-mode .student-only { display: block !important; }
+    body.student-mode .asset-prompts { display: none; }
+
+    .app {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 22px 22px 48px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-left,
+    .topbar-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: #7c3c08;
+      background: #fff0ce;
+      border: 1px solid #ffd58b;
+      font-weight: 900;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      gap: 6px;
+      padding: 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.82);
+      border: 1px solid #ffd58b;
+    }
+
+    .mode-pill {
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: #6b4b2a;
+      font-weight: 900;
+      font-size: 14px;
+      user-select: none;
+    }
+
+    .mode-pill.active {
+      color: #422006;
+      background: linear-gradient(135deg, #ff9c4a, #ffd166);
+      box-shadow: 0 5px 10px rgba(255,138,61,.18);
+    }
+
+    .product-nav {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin: 0 0 18px;
+    }
+
+    .nav-step {
+      border: 2px solid rgba(255,193,94,.48);
+      border-radius: 18px;
+      background: rgba(255,255,255,.72);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 8px 20px rgba(112,73,20,.07);
+    }
+
+    .nav-step-num {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #fff0d2;
+      color: #7c3c08;
+      font-weight: 1000;
+    }
+
+    .nav-step-title {
+      font-weight: 1000;
+      color: #374151;
+      font-size: 14px;
+    }
+
+    .nav-step-status {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #f3f4f6;
+      color: #9ca3af;
+      font-size: 13px;
+      font-weight: 1000;
+    }
+
+    .nav-step.done {
+      border-color: #9be8cd;
+      background: #f0fff8;
+    }
+
+    .nav-step.done .nav-step-status {
+      background: #10b981;
+      color: white;
+    }
+
+    .nav-step.active {
+      border-color: #ff9c4a;
+      background: #fff4dd;
+    }
+
+    .student-only { display: none; }
+
+    .card,
+    .hero-card,
+    .teacher-card,
+    .panel {
+      background: var(--panel);
+      border: 2px solid rgba(255, 193, 94, .48);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, .75fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+
+    .hero-card {
+      position: relative;
+      min-height: 280px;
+      padding: 30px 34px;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      right: -80px;
+      top: -80px;
+      border-radius: 50%;
+      background: rgba(255, 138, 61, .13);
+    }
+
+    h1 {
+      margin: 16px 0 10px;
+      font-size: var(--big-title);
+      line-height: 1.02;
+      letter-spacing: -1.5px;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 0;
+      font-size: calc(var(--text) + 2px);
+      line-height: 1.7;
+      color: #4b5563;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .step {
+      padding: 14px;
+      border-radius: 18px;
+      background: #fff9ed;
+      border: 1px dashed #ffbe6a;
+      font-weight: 900;
+      color: #8a4a13;
+      text-align: center;
+      font-size: var(--text);
+    }
+
+    .teacher-card {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #fff6df 100%);
+    }
+
+    .teacher-card h2,
+    .panel h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 14px;
+      font-size: var(--title);
+      line-height: 1.15;
+    }
+
+    .teacher-card p,
+    .section-note {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: var(--text);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .section-note { margin: -6px 0 16px; }
+
+    .group-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.2fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-weight: 900;
+      margin-bottom: 8px;
+      color: #374151;
+      font-size: var(--text);
+    }
+
+    select,
+    input,
+    textarea {
+      width: 100%;
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: #fffdf7;
+      color: var(--ink);
+      font-size: var(--text);
+      outline: none;
+      transition: .18s ease;
+      font-family: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 92px;
+      line-height: 1.58;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 4px rgba(255, 138, 61, .12);
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .role-card {
+      cursor: pointer;
+      border: 2px solid transparent;
+      border-radius: 22px;
+      background: #fff7e8;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 12px;
+      align-items: center;
+      transition: .18s ease;
+      min-height: 132px;
+    }
+
+    .role-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(0,0,0,.08);
+    }
+
+    .role-card.active {
+      border-color: var(--brand);
+      background: #fff1d6;
+      box-shadow: 0 8px 18px rgba(255, 138, 61, .16);
+    }
+
+    .avatar-art {
+      width: 92px;
+      height: 92px;
+      border-radius: 22px;
+      display: grid;
+      place-items: center;
+      font-size: 44px;
+      background: linear-gradient(145deg, var(--c1), var(--c2));
+      border: 3px solid rgba(255,255,255,.85);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .avatar-art.has-image,
+    .big-avatar.has-image,
+    .gallery-emoji.has-image {
+      background: #fffaf0;
+    }
+
+    .avatar-art img,
+    .big-avatar img,
+    .gallery-emoji img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .avatar-art .emoji-fallback,
+    .big-avatar .emoji-fallback,
+    .gallery-emoji .emoji-fallback {
+      display: none;
+      position: absolute;
+      inset: 0;
+      place-items: center;
+    }
+
+    .avatar-art.img-missing .emoji-fallback,
+    .big-avatar.img-missing .emoji-fallback,
+    .gallery-emoji.img-missing .emoji-fallback {
+      display: grid;
+    }
+
+    .big-avatar img {
+      object-position: center center;
+    }
+
+    .role-sheet-card {
+      margin-top: 12px;
+      border-radius: 20px;
+      border: 1px solid #f0d6aa;
+      background: #fffdf8;
+      overflow: hidden;
+    }
+
+    .role-sheet-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #fff0d2;
+      color: #7c3c08;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .role-sheet-img {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      display: block;
+      background: #fffaf0;
+    }
+
+    .role-sheet-tip {
+      padding: 10px 12px;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .role-title {
+      font-size: calc(var(--text) + 1px);
+      font-weight: 900;
+      margin-bottom: 5px;
+    }
+
+    .role-desc {
+      font-size: calc(var(--text) - 3px);
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .role-card-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .sheet-link-btn {
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid #ffd08a;
+      background: #fffdf8;
+      color: #7c3c08;
+      font-size: 12px;
+      font-weight: 1000;
+      box-shadow: none;
+    }
+
+    .sheet-link-btn:hover {
+      background: #fff0d2;
+    }
+
+    .role-mini-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .mini-tag {
+      display: inline-flex;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.75);
+      color: #7c3c08;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .preview-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .role-preview {
+      display: grid;
+      grid-template-columns: 138px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #fffaf0, #fff4db);
+      border: 2px dashed #efc776;
+    }
+
+    .big-avatar {
+      width: 138px;
+      height: 138px;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      font-size: 72px;
+      background: linear-gradient(145deg, var(--c1), var(--c2));
+      box-shadow: inset 0 0 0 4px rgba(255,255,255,.45);
+    }
+
+    .mini-output {
+      background: #fffaf0;
+      border: 2px dashed #f0c46c;
+      border-radius: 18px;
+      padding: 14px;
+      line-height: 1.68;
+      color: #4b5563;
+      white-space: pre-wrap;
+      font-size: calc(var(--text) - 1px);
+    }
+
+    .scene-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 10px 0 16px;
+    }
+
+    .scene-card {
+      cursor: pointer;
+      min-height: 124px;
+      border-radius: 20px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 2px solid transparent;
+      background: linear-gradient(145deg, var(--s1), var(--s2));
+      transition: .18s ease;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .scene-card::after {
+      content: attr(data-emoji);
+      position: absolute;
+      right: 8px;
+      bottom: 4px;
+      font-size: 42px;
+      opacity: .4;
+    }
+
+    .scene-card.active {
+      border-color: var(--brand);
+      box-shadow: 0 8px 18px rgba(255, 138, 61, .18);
+      transform: translateY(-1px);
+    }
+
+    .scene-card strong,
+    .scene-card span {
+      position: relative;
+      z-index: 1;
+      display: block;
+    }
+
+    .scene-card strong { font-size: var(--text); color: #2f2f3a; }
+    .scene-card span { color: #4b5563; font-size: 13px; line-height: 1.4; max-width: 86%; }
+
+    .form-row { margin-bottom: 17px; }
+
+    .pill-group,
+    .btn-row,
+    .poster-actions,
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      cursor: pointer;
+      border: 2px solid #f0d6aa;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: #fffdf8;
+      font-weight: 900;
+      color: #4b5563;
+      transition: .18s ease;
+      user-select: none;
+      font-size: calc(var(--text) - 1px);
+    }
+
+    .pill.active {
+      color: #743509;
+      border-color: #ff9c4a;
+      background: #fff0d2;
+    }
+
+    .grade-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .grade-btn {
+      cursor: pointer;
+      padding: 14px 12px;
+      border-radius: 18px;
+      border: 2px solid var(--line);
+      background: #fffdf8;
+      font-weight: 900;
+      color: #6b4b2a;
+      text-align: center;
+      transition: .18s ease;
+      font-size: var(--text);
+    }
+
+    .grade-btn.active {
+      background: linear-gradient(135deg, #ffb86b, #ffd166);
+      border-color: #ff9c4a;
+      color: #4a2708;
+    }
+
+    .storyboard {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 12px 0 18px;
+    }
+
+    .frame {
+      border: 2px solid #f0d6aa;
+      border-radius: 18px;
+      background: #fffdf8;
+      min-height: 172px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-title {
+      display: inline-flex;
+      align-self: flex-start;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #fff0d2;
+      color: #7c3c08;
+      font-weight: 900;
+      margin-bottom: 8px;
+      font-size: calc(var(--text) - 3px);
+    }
+
+    .frame textarea {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      min-height: 106px;
+      font-size: calc(var(--text) - 1px);
+      box-shadow: none !important;
+      flex: 1;
+    }
+
+    .story-help {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: -6px 0 18px;
+    }
+
+    .story-help-card {
+      border-radius: 18px;
+      border: 1px solid #f0d6aa;
+      background: #fff9ed;
+      padding: 12px;
+    }
+
+    .story-help-card h3 {
+      margin: 0 0 8px;
+      color: #7c3c08;
+      font-size: calc(var(--text) - 2px);
+    }
+
+    .story-chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .story-chip {
+      cursor: pointer;
+      border: 1px solid #ffd08a;
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #fffdf8;
+      color: #5b3a14;
+      font-weight: 800;
+      font-size: 13px;
+      line-height: 1.2;
+      transition: .18s ease;
+      user-select: none;
+    }
+
+    .story-chip:hover {
+      background: #fff0d2;
+      transform: translateY(-1px);
+    }
+
+    .quick-story-panel {
+      border-radius: 20px;
+      border: 2px dashed #f0c46c;
+      background: #fffaf0;
+      padding: 14px;
+      margin: 12px 0 16px;
+    }
+
+    .quick-story-panel strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #7c3c08;
+      font-size: var(--text);
+    }
+
+    .quick-story-panel p {
+      margin: 0;
+      color: #4b5563;
+      line-height: 1.6;
+      font-size: calc(var(--text) - 1px);
+    }
+
+    .choice-summary {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+
+    .choice-item {
+      border-radius: 16px;
+      border: 1px solid #f0d6aa;
+      background: #fffdf8;
+      padding: 10px;
+      min-height: 72px;
+    }
+
+    .choice-item strong {
+      display: block;
+      color: #7c3c08;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    .choice-item span {
+      display: block;
+      color: #374151;
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      border-radius: 16px;
+      padding: 13px 18px;
+      font-weight: 900;
+      font-size: var(--text);
+      transition: .18s ease;
+      font-family: inherit;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .primary { color: #422006; background: linear-gradient(135deg, #ff9c4a, #ffd166); box-shadow: 0 8px 16px rgba(255, 138, 61, .24); }
+    .secondary { color: #334155; background: #eef7ff; border: 1px solid #b9ddff; }
+    .danger { color: #7f1d1d; background: #fff0f0; border: 1px solid #fecaca; }
+    .success { color: #064e3b; background: #eafff6; border: 1px solid #9be8cd; }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 8px 0 16px;
+    }
+
+    .tool-card {
+      cursor: pointer;
+      border: 2px solid #f0d6aa;
+      border-radius: 18px;
+      background: #fffdf8;
+      padding: 12px;
+      transition: .18s ease;
+    }
+
+    .tool-card.active { border-color: #ff9c4a; background: #fff0d2; }
+    .tool-card strong { display:block; color:#7c3c08; margin-bottom:4px; }
+    .tool-card span { display:block; color:#6b7280; font-size:13px; line-height:1.45; }
+
+    .sticky-result { position: sticky; top: 86px; z-index: 5; }
+
+    .output-box {
+      background: #1f2937;
+      color: #f9fafb;
+      border-radius: 20px;
+      padding: 18px;
+      line-height: 1.75;
+      min-height: 210px;
+      white-space: pre-wrap;
+      font-size: calc(var(--text) - 1px);
+      border: 3px solid rgba(255, 209, 102, .55);
+    }
+
+    .quality-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .quality-item {
+      border-radius: 16px;
+      border: 1px solid #f0d6aa;
+      background: #fffdf8;
+      padding: 12px;
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .quality-item strong { display:block; color:#374151; margin-bottom:4px; font-size:15px; }
+    .quality-item.pass { border-color:#9be8cd; background:#f0fff8; }
+    .quality-item.warn { border-color:#ffd08a; background:#fff9ed; }
+
+    .teacher-tools {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .teacher-example-box,
+    .review-box {
+      border-radius: 18px;
+      border: 1px solid #f0d6aa;
+      background: #fffdf8;
+      padding: 14px;
+    }
+
+    .teacher-example-box h3,
+    .review-box h3,
+    .poster-card h3,
+    .gallery-card h3 {
+      margin: 0 0 10px;
+      color: #7c3c08;
+      font-size: 20px;
+    }
+
+    .teacher-example-box textarea,
+    .review-box textarea { min-height: 120px; }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .score-item {
+      padding: 10px;
+      border-radius: 14px;
+      background: #fff9ed;
+      border: 1px solid #f0d6aa;
+    }
+
+    .score-item label { font-size: 13px; margin-bottom: 6px; }
+
+    .score-item select { padding: 8px; border-radius: 12px; font-size: 14px; }
+
+    .poster-card {
+      padding: 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #fff7df 0%, #fff 44%, #eef7ff 100%);
+      border: 2px solid rgba(255,193,94,.52);
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .poster-preview {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255,209,102,.52), transparent 22%),
+        radial-gradient(circle at 86% 18%, rgba(79,154,216,.22), transparent 26%),
+        linear-gradient(135deg, #fff3d7, #fffdf6 48%, #edf7ff);
+      border: 2px solid #ffd58b;
+      padding: 22px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .poster-preview::after {
+      content: attr(data-emoji);
+      position: absolute;
+      right: 22px;
+      top: 36px;
+      font-size: clamp(80px, 11vw, 150px);
+      opacity: .16;
+      transform: rotate(-8deg);
+    }
+
+    .poster-title {
+      font-size: clamp(26px, 3.2vw, 46px);
+      font-weight: 1000;
+      color: #243044;
+      line-height: 1.05;
+      max-width: 72%;
+    }
+
+    .poster-subtitle {
+      color: #7c3c08;
+      font-size: 16px;
+      font-weight: 900;
+      margin-top: 8px;
+    }
+
+    .poster-frames {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      align-self: center;
+    }
+
+    .poster-frame {
+      min-height: 126px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.82);
+      border: 2px solid rgba(255,193,94,.52);
+      padding: 12px;
+      line-height: 1.45;
+      font-size: clamp(13px, 1.3vw, 17px);
+      color: #374151;
+      overflow: hidden;
+    }
+
+    .poster-frame strong {
+      display:block;
+      color:#7c3c08;
+      margin-bottom:6px;
+    }
+
+    .poster-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: end;
+      color: #4b5563;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .gallery-card {
+      border-radius: 20px;
+      border: 2px solid #f0d6aa;
+      background: #fffdf8;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(112,73,20,.08);
+    }
+
+    .gallery-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 8px;
+    }
+
+    .gallery-emoji {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: #fff0d2;
+      font-size: 28px;
+      flex: 0 0 auto;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #ffd58b;
+    }
+
+    .gallery-meta {
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .gallery-story {
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.55;
+      background: #fff9ed;
+      border-radius: 14px;
+      padding: 10px;
+      min-height: 86px;
+    }
+
+    .record-table-wrap {
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid #f1d6a6;
+      background: #fffdf8;
+    }
+
+    table { width: 100%; border-collapse: collapse; min-width: 920px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #f2dfbd; vertical-align: top; font-size: calc(var(--text) - 2px); }
+    th { background: #fff2d2; color: #7c3c08; font-weight: 900; }
+    tr:last-child td { border-bottom: 0; }
+
+    .small-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .small-btn { padding:7px 10px; border-radius:12px; font-size:13px; }
+
+    .helper { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:0; }
+    .helper-card { border-radius:18px; padding:16px; background:#fff8ea; border:1px solid #f4d49a; }
+    .helper-card h3 { margin:0 0 8px; font-size:20px; }
+    .helper-card ul { margin:0; padding-left:20px; color:#4b5563; line-height:1.75; font-size:calc(var(--text) - 1px); }
+
+    .asset-prompts details { border-radius:18px; background:#fffdf8; border:1px solid var(--line); padding:14px 16px; margin-bottom:10px; }
+    .asset-prompts summary { cursor:pointer; font-weight:900; color:#7c3c08; font-size:var(--text); }
+    .asset-prompts p { margin:10px 0 0; line-height:1.68; color:#4b5563; font-size:calc(var(--text) - 1px); }
+
+    .print-sheet { display:none; }
+
+    .sheet-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .sheet-modal.open {
+      display: flex;
+    }
+
+    .sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(36, 48, 68, .48);
+      backdrop-filter: blur(8px);
+    }
+
+    .sheet-dialog {
+      position: relative;
+      z-index: 1;
+      width: min(1120px, 96vw);
+      max-height: 92vh;
+      overflow: hidden;
+      border-radius: 30px;
+      background: #fffdf8;
+      border: 3px solid #ffd58b;
+      box-shadow: 0 26px 70px rgba(36, 48, 68, .28);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .sheet-modal-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 22px;
+      background: linear-gradient(135deg, #fff0d2, #eef7ff);
+      border-bottom: 1px solid #f0d6aa;
+    }
+
+    .sheet-eyebrow {
+      color: #7c3c08;
+      font-size: 14px;
+      font-weight: 1000;
+      margin-bottom: 4px;
+    }
+
+    .sheet-modal-head h2 {
+      margin: 0;
+      font-size: clamp(24px, 2.6vw, 36px);
+      line-height: 1.1;
+    }
+
+    .sheet-close {
+      flex: 0 0 auto;
+      color: #334155;
+      background: #ffffff;
+      border: 1px solid #b9ddff;
+    }
+
+    .sheet-modal-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, .7fr);
+      gap: 16px;
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .sheet-image-wrap {
+      border-radius: 24px;
+      border: 2px solid #f0d6aa;
+      background: #fffaf0;
+      min-height: 420px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .sheet-image-wrap img {
+      width: 100%;
+      height: 100%;
+      max-height: 68vh;
+      object-fit: contain;
+      display: block;
+    }
+
+    .sheet-side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sheet-tip-card {
+      border-radius: 20px;
+      border: 1px solid #f0d6aa;
+      background: #fff9ed;
+      padding: 14px;
+      color: #4b5563;
+      line-height: 1.65;
+      font-size: calc(var(--text) - 1px);
+    }
+
+    .sheet-tip-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #7c3c08;
+      font-size: var(--text);
+    }
+
+    .sheet-asset-path {
+      word-break: break-all;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #1f2937;
+      color: #f9fafb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .hero, .main, .teacher-tools { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: repeat(2, 1fr); }
+      .role-grid { grid-template-columns: repeat(2, 1fr); }
+      .product-nav { grid-template-columns: repeat(2, 1fr); }
+      .quality-grid, .score-grid { grid-template-columns: repeat(2, 1fr); }
+      .tool-grid { grid-template-columns: 1fr; }
+      .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+      .sticky-result { position: static; }
+      .topbar { position: static; }
+    }
+
+    @media (max-width: 760px) {
+      .app { padding: 14px 12px 34px; }
+      .role-grid, .storyboard, .helper, .group-form, .scene-grid, .product-nav, .quality-grid, .story-help, .teacher-tools, .score-grid, .gallery-grid, .poster-frames, .choice-summary { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .hero-card, .panel { padding: 18px; }
+      .role-card { grid-template-columns: 78px 1fr; }
+      .avatar-art { width: 78px; height: 78px; }
+      .role-preview { grid-template-columns: 1fr; }
+      .big-avatar { width: 100%; height: 160px; }
+      .poster-title { max-width: 100%; }
+      .poster-preview { aspect-ratio: auto; min-height: 620px; }
+    }
+
+    @media print {
+      body { background: white !important; }
+      .topbar, .hero, .left-col, .result-panel, .records-panel, .helper, .asset-prompts, .btn-row, .form-row.extra-only, .product-nav, .teacher-product-panel, .poster-card, .gallery-panel { display: none !important; }
+      .app { max-width: none; padding: 0; }
+      .main { display: block; }
+      .panel { box-shadow: none; border: 0; padding: 0; margin: 0; }
+      .print-sheet { display:block; padding:28px; color:#111827; }
+      .print-title { font-size:28px; font-weight:900; margin-bottom:16px; }
+      .print-meta { display:grid; grid-template-columns:1fr 1fr; gap:8px 18px; margin-bottom:18px; font-size:16px; }
+      .print-frames { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; }
+      .print-frame { min-height:180px; border:2px solid #111827; border-radius:12px; padding:12px; white-space:pre-wrap; line-height:1.6; }
+      .print-prompt { border:2px dashed #111827; border-radius:12px; padding:12px; white-space:pre-wrap; line-height:1.55; font-size:13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="badge">🎬 AI 小小导演｜课堂产品版</span>
+        <div class="mode-switch" title="老师投屏时建议用老师模式；小组平板填写时用学生模式">
+          <span class="mode-pill active" data-mode="teacher">老师模式</span>
+          <span class="mode-pill" data-mode="student">学生模式</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="secondary" id="presentationBtn">大屏模式</button>
+        <button class="secondary" id="printBtn">打印分镜卡</button>
+        <button class="success" id="saveRecordBtn">保存小组作品</button>
+        <button class="secondary" id="exportCsvBtn">导出记录 CSV</button>
+      </div>
+    </div>
+
+    <section class="product-nav" id="productNav">
+      <div class="nav-step" data-step="info"><span class="nav-step-num">1</span><span class="nav-step-title">小组信息</span><span class="nav-step-status">·</span></div>
+      <div class="nav-step" data-step="role"><span class="nav-step-num">2</span><span class="nav-step-title">角色</span><span class="nav-step-status">·</span></div>
+      <div class="nav-step" data-step="scene"><span class="nav-step-num">3</span><span class="nav-step-title">场景</span><span class="nav-step-status">·</span></div>
+      <div class="nav-step" data-step="shot"><span class="nav-step-num">4</span><span class="nav-step-title">任务与拍法</span><span class="nav-step-status">·</span></div>
+      <div class="nav-step" data-step="story"><span class="nav-step-num">5</span><span class="nav-step-title">导演整理</span><span class="nav-step-status">·</span></div>
+    </section>
+
+    <section class="hero">
+      <div class="hero-card">
+        <span class="badge">第二课互动工具｜角色 → 分镜 → 视频提示词 → 作品展示</span>
+        <h1>让角色演出<br/>一个故事镜头</h1>
+        <p class="subtitle">小朋友先选择角色、场景、任务、情绪和镜头；系统再把这些选择整理成“开始 → 动作 → 变化”三个镜头。孩子像小导演一样做取舍、调节画面节奏，最后导出完整提示词、作品海报和小组作品墙。</p>
+        <div class="steps">
+          <div class="step">① 选素材</div>
+          <div class="step">② 换草稿</div>
+          <div class="step">③ 导演整理</div>
+          <div class="step">④ 老师点评</div>
+          <div class="step">⑤ 作品展示</div>
+        </div>
+      </div>
+      <div class="teacher-card">
+        <h2>课堂使用方式</h2>
+        <p>投影到大屏时，老师带全班共创一个示例；平板使用时，每组填写自己的分镜。助教可以复制提示词到豆包、即梦、海螺等 AI 视频工具。</p>
+        <p><strong>课堂口诀：</strong>一个角色，一个动作，一个变化。</p>
+        <p class="student-only"><strong>小朋友任务：</strong>不要写很长，只要让别人看懂“开始、中间、最后”。</p>
+      </div>
+    </section>
+
+    <main class="main">
+      <div class="left-col">
+        <section class="panel">
+          <h2>① 小组信息</h2>
+          <div class="group-form">
+            <div><label for="className">班级/课程</label><input id="className" placeholder="例如：三年级 AI 课" /></div>
+            <div><label for="groupName">小组名</label><input id="groupName" placeholder="例如：星星导演组" /></div>
+            <div><label for="studentNames">成员</label><input id="studentNames" placeholder="例如：小明、小雨、小乐" /></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>② 选择角色</h2>
+          <p class="section-note">每个角色都有自己的“小世界”。先选角色，再选适合它的场景和任务。</p>
+          <div class="role-grid" id="roleGrid"></div>
+          <div class="preview-layout">
+            <div class="role-preview" id="rolePreview"></div>
+            <div class="mini-output" id="roleInfo"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>③ 选择场景</h2>
+          <p class="section-note">场景卡片是课堂预览图。后续可以把背景换成你生成的真实角色场景图。</p>
+          <div class="scene-grid" id="sceneGrid"></div>
+        </section>
+
+        <section class="panel">
+          <h2>④ 选择任务、情绪和镜头</h2>
+          <div class="form-row"><label for="taskSelect">任务</label><select id="taskSelect"></select></div>
+          <div class="form-row"><label>情绪变化</label><div class="pill-group" id="emotionGroup"></div></div>
+          <div class="form-row"><label>镜头</label><div class="pill-group" id="shotGroup"></div></div>
+          <div class="form-row"><label>视频风格</label><div class="pill-group" id="styleGroup"></div></div>
+        </section>
+      </div>
+
+      <div class="right-col">
+        <section class="panel">
+          <h2>⑤ 导演整理 3 个镜头</h2>
+          <div class="grade-toggle">
+            <div class="grade-btn active" data-grade="simple">三四年级：简单版</div>
+            <div class="grade-btn" data-grade="advanced">五六年级：进阶版</div>
+          </div>
+          <p class="section-note" id="gradeHint">三四年级：每个镜头只写一句话。第 1 镜头写“在哪里”，第 2 镜头写“怎么做”，第 3 镜头写“有什么变化”。</p>
+
+          <div class="quick-story-panel director-panel">
+            <strong>老师提示：第 5 步不是重新编故事，而是把前面 1–4 的选择整理成“开始 → 动作 → 变化”。</strong>
+            <p id="storyHintText">先看当前选择，再点击“一键整理成 3 个镜头”。孩子只需要判断：画面清不清楚？动作是不是只有一个？最后有没有变化？</p>
+          </div>
+
+          <div class="choice-summary" id="choiceSummary"></div>
+
+          <div class="storyboard">
+            <div class="frame"><div class="frame-title">第 1 镜头：开始</div><textarea id="frame1" placeholder="谁？在哪里？准备做什么？"></textarea></div>
+            <div class="frame"><div class="frame-title">第 2 镜头：动作</div><textarea id="frame2" placeholder="它怎么完成这个任务？只写一个主要动作。"></textarea></div>
+            <div class="frame"><div class="frame-title">第 3 镜头：变化</div><textarea id="frame3" placeholder="任务完成后，画面或情绪发生了什么变化？"></textarea></div>
+          </div>
+
+          <div class="story-help" id="storyHelp"></div>
+
+          <div class="form-row extra-only">
+            <label for="extraReq">额外要求，可选</label>
+            <textarea id="extraReq" placeholder="例如：动作慢一点；背景不要突然变化；角色不要变形；不要文字。"></textarea>
+          </div>
+
+          <div class="btn-row">
+            <button class="primary" id="autoDraftBtn">一键整理成 3 个镜头</button>
+            <button class="primary" id="nextDraftBtn">换一种讲法</button>
+            <button class="primary" id="fillExampleBtn">填入当前角色示例</button>
+            <button class="secondary" id="teacherExampleBtn">一键生成老师示例</button>
+            <button class="secondary" id="generateBtn">生成完整视频提示词</button>
+            <button class="secondary" id="copyBtn">复制提示词</button>
+            <button class="secondary" id="resetBtn">清空分镜</button>
+          </div>
+        </section>
+
+        <section class="panel result-panel sticky-result">
+          <h2>⑥ 完整视频提示词</h2>
+          <p class="section-note">复制后可粘贴到豆包、即梦、海螺等视频生成工具。</p>
+          <label class="teacher-only">选择目标工具</label>
+          <div class="tool-grid teacher-only" id="toolGrid"></div>
+          <div class="output-box" id="outputBox">选择角色并填写分镜后，点击“生成完整视频提示词”。</div>
+          <div class="quality-grid" id="qualityGrid"></div>
+        </section>
+      </div>
+    </main>
+
+    <section class="panel teacher-product-panel teacher-only">
+      <h2>⑦ 老师工具台</h2>
+      <p class="section-note">用于课堂展示、助教点评和保存作品。学生模式会隐藏这块，避免干扰孩子填写。</p>
+      <div class="teacher-tools">
+        <div class="teacher-example-box">
+          <h3>一键老师示例</h3>
+          <textarea id="teacherExampleBox" readonly placeholder="点击“一键生成老师示例”后，这里会出现老师演示用话术。"></textarea>
+          <div class="btn-row">
+            <button class="secondary" id="copyTeacherExampleBtn">复制老师示例</button>
+          </div>
+        </div>
+        <div class="review-box">
+          <h3>老师点评区</h3>
+          <div class="score-grid">
+            <div class="score-item"><label>角色一致</label><select id="scoreRole"><option>⭐</option><option>⭐⭐</option><option selected>⭐⭐⭐</option></select></div>
+            <div class="score-item"><label>动作清楚</label><select id="scoreAction"><option>⭐</option><option>⭐⭐</option><option selected>⭐⭐⭐</option></select></div>
+            <div class="score-item"><label>有变化</label><select id="scoreChange"><option>⭐</option><option>⭐⭐</option><option selected>⭐⭐⭐</option></select></div>
+            <div class="score-item"><label>镜头稳定</label><select id="scoreCamera"><option>⭐</option><option>⭐⭐</option><option selected>⭐⭐⭐</option></select></div>
+          </div>
+          <textarea id="teacherComment" placeholder="老师点评，例如：你们的故事有开始和结尾，动作也很清楚。下一版可以让情绪变化更明显。"></textarea>
+          <div class="btn-row">
+            <button class="secondary" id="generateCommentBtn">生成点评建议</button>
+            <button class="secondary" id="copyCommentBtn">复制点评</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="poster-card">
+      <h3>⑧ 小组作品海报</h3>
+      <p class="section-note">海报适合课堂展示、家长群截图或课后作品归档。先保存小组作品，再导出海报更完整。</p>
+      <div class="poster-preview" id="posterPreview" data-emoji="🦊"></div>
+      <div class="poster-actions btn-row">
+        <button class="success" id="exportPosterBtn">一键导出小组作品海报</button>
+        <button class="secondary" id="refreshPosterBtn">刷新海报预览</button>
+      </div>
+    </section>
+
+    <section class="panel records-panel">
+      <h2>⑨ 小组作品记录</h2>
+      <p class="section-note">点击“保存小组作品”后会记录在本机浏览器中，可导出 CSV 给老师留档，也会进入下面的学生作品展示墙。</p>
+      <div class="record-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th><th>小组</th><th>角色</th><th>场景</th><th>任务</th><th>情绪/镜头</th><th>点评</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="recordBody"></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="danger" id="clearRecordsBtn">清空作品记录</button>
+      </div>
+    </section>
+
+    <section class="panel gallery-panel">
+      <h2>⑩ 学生作品展示墙</h2>
+      <p class="section-note">适合投影展示。可以按角色过滤，也可以直接展示全部小组。</p>
+      <div class="filter-row" style="margin-bottom:14px;">
+        <label style="margin:0;">筛选角色</label>
+        <select id="galleryFilter" style="max-width:260px;"><option value="all">全部角色</option></select>
+        <button class="secondary" id="showcaseBtn">展示最新作品</button>
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </section>
+
+    <section class="helper">
+      <div class="helper-card">
+        <h3>给小朋友的创作规则</h3>
+        <ul>
+          <li>一个视频只做一个主要动作。</li>
+          <li>先想清楚开始、中间、变化。</li>
+          <li>不要上传真人同学照片。</li>
+          <li>看到 AI 结果后，要检查哪里奇怪。</li>
+        </ul>
+      </div>
+      <div class="helper-card">
+        <h3>老师和助教检查点</h3>
+        <ul>
+          <li>角色是否保持一致？</li>
+          <li>动作是否太多、太乱？</li>
+          <li>镜头是否稳定？</li>
+          <li>情绪变化是否看得出来？</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel asset-prompts">
+      <h2>图片资产生成 Prompt</h2>
+      <p class="section-note">这些用于生成网页/课件中的角色卡和场景预览图。生成后可把图片文件放到同目录，再在 JS 数据里填入 image 字段。</p>
+      <details open><summary>通用角色卡图片 Prompt</summary><p>儿童漫画风格，面向小学三到六年级的 AI 视频课角色卡。角色居中展示，半身或全身，干净背景，暖色调，多彩但不幼稚，适合网页卡片和课堂投影，4:3，不要文字，不要水印。</p></details>
+      <details><summary>通用场景预览图 Prompt</summary><p>儿童漫画风格，适合小学 AI 视频课的场景预览图，画面清晰、有空间感，能够让孩子一眼看出角色可以在哪里行动。暖色调，多彩，不幼稚，4:3，不要文字，不要水印。</p></details>
+    </section>
+
+    <section class="print-sheet" id="printSheet"></section>
+  </div>
+
+  <div class="sheet-modal" id="sheetModal" aria-hidden="true">
+    <div class="sheet-backdrop" id="sheetBackdrop"></div>
+    <div class="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheetModalTitle">
+      <div class="sheet-modal-head">
+        <div>
+          <div class="sheet-eyebrow">角色一致性参考</div>
+          <h2 id="sheetModalTitle">角色设定图</h2>
+        </div>
+        <button class="sheet-close" id="closeSheetBtn">关闭</button>
+      </div>
+      <div class="sheet-modal-body">
+        <div class="sheet-image-wrap">
+          <img id="sheetModalImage" src="" alt="角色三视图、表情和动作设定图" />
+        </div>
+        <div class="sheet-side">
+          <div class="sheet-tip-card">
+            <strong>什么时候打开这张图？</strong>
+            老师讲“角色一致性”时打开；助教生成视频前打开；高年级小朋友想让角色不变形时打开。
+          </div>
+          <div class="sheet-tip-card">
+            <strong>检查 4 件事</strong>
+            ① 颜色有没有保持一致；② 帽子、背包、披风、魔法棒等道具有没有丢；③ 表情是不是符合故事；④ 动作是不是只做一个主要动作。
+          </div>
+          <div class="sheet-tip-card">
+            <strong>图片文件路径</strong>
+            <div class="sheet-asset-path" id="sheetAssetPath"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var roles = {
+      fox: { name: "月亮小狐狸", emoji: "🦊", type: "奇幻发现型角色", desc: "温暖、好奇、聪明，适合神秘发现类故事。", keywords: "月亮、星星、图书馆、发现、发光书", color: "橙色 + 深蓝 + 金色", colors: ["#ffe4a3", "#7db9ff"], tags: ["发现", "神秘", "温暖"], scenes: [{ name: "月亮图书馆", desc: "发光书架、弯月窗、星星灯", emoji: "🌙", colors: ["#ffe4a3", "#b9d7ff"] }, { name: "星星书房", desc: "小桌子、星星挂灯、书堆", emoji: "⭐", colors: ["#fff0b8", "#d8c6ff"] }, { name: "月光小路", desc: "小灯笼、月亮石阶、夜空", emoji: "🏮", colors: ["#c8dcff", "#fff0c2"] }], tasks: ["打开一本发光的神秘书", "帮助小星星找到一本书", "推开月亮图书馆的门", "提着小灯笼沿月光小路前进"], emotions: ["好奇 → 惊喜", "困惑 → 明白", "紧张 → 放心"], shots: ["镜头慢慢靠近", "从远处看到近处", "固定镜头"], examples: { simple: ["月亮小狐狸站在月亮图书馆里，看见桌上有一本发光的书。", "小狐狸慢慢走过去，用双手把书打开。", "书里发出金色的光，照亮小狐狸的脸，它变得很惊喜。"], advanced: ["月亮小狐狸站在月亮图书馆的书架前，发现桌上有一本发着微弱金光的神秘书。", "它小心地走近，用双手慢慢把书打开，书页翻开时金色光芒越来越亮。", "金色光芒照亮小狐狸的脸和周围书架，小狐狸从好奇变成惊喜，像发现了一个秘密。"] } },
+      panda: { name: "熊猫宇航员", emoji: "🐼", type: "太空冒险型角色", desc: "勇敢、好奇、有点幽默，适合轻喜剧动作。", keywords: "太空、月球、冰淇淋、失重、探索", color: "黑白 + 蓝色 + 黄色", colors: ["#dbeafe", "#fde68a"], tags: ["冒险", "太空", "有趣"], scenes: [{ name: "月球表面", desc: "月面、地球远景、小陨石坑", emoji: "🌕", colors: ["#e5e7eb", "#bfdbfe"] }, { name: "太空站窗口边", desc: "大玻璃窗、控制台、星空", emoji: "🛰️", colors: ["#c7d2fe", "#e0f2fe"] }, { name: "星球滑行区", desc: "小火箭、轨道、漂浮道具", emoji: "🚀", colors: ["#fde68a", "#bae6fd"] }], tasks: ["追到飘走的冰淇淋", "在失重中慢慢漂浮", "发现一颗闪亮小石头", "站在月球上看向地球"], emotions: ["惊讶 → 开心", "紧张 → 放松", "好奇 → 兴奋"], shots: ["跟着角色移动", "镜头轻轻上升", "固定镜头"], examples: { simple: ["熊猫宇航员站在月球上，手里拿着一个彩色冰淇淋。", "冰淇淋慢慢飘起来，熊猫赶紧伸手去追。", "熊猫终于抓住了冰淇淋，开心地笑了。"], advanced: ["熊猫宇航员站在灰色月球表面，背景能看到蓝色地球，它手里拿着彩色冰淇淋。", "因为失重，冰淇淋慢慢向上飘，熊猫惊讶地睁大眼睛，伸手追过去。", "熊猫轻轻漂起来抓住冰淇淋，表情从惊讶变成开心，画面轻松有趣。"] } },
+      cat: { name: "猫咪魔法师", emoji: "🐱", type: "魔法梦幻型角色", desc: "专注、温柔、神秘，适合星光和魔法效果。", keywords: "魔法、星光、图书馆、魔法棒、咒语书", color: "橘色 + 紫色 + 金色", colors: ["#fbcfe8", "#c4b5fd"], tags: ["魔法", "星光", "梦幻"], scenes: [{ name: "魔法图书馆", desc: "高书架、发光烛台、魔法书", emoji: "📚", colors: ["#fef3c7", "#ddd6fe"] }, { name: "星光练习室", desc: "星形地毯、小魔法阵、光点", emoji: "✨", colors: ["#fde68a", "#fbcfe8"] }, { name: "月夜塔楼", desc: "夜空窗户、塔楼、近处星星", emoji: "🏰", colors: ["#bfdbfe", "#e9d5ff"] }], tasks: ["用魔法棒点亮小星星", "让书本慢慢飞起来", "打开一本魔法书", "召唤几颗小光点"], emotions: ["专注 → 开心", "紧张 → 成功", "困惑 → 明白"], shots: ["镜头慢慢靠近", "固定镜头", "镜头轻轻环绕"], examples: { simple: ["猫咪魔法师站在魔法图书馆里，旁边有一本打开的大书。", "猫咪挥动魔法棒，书里飞出几颗小星星。", "小星星围着猫咪转，图书馆亮起来了。"], advanced: ["猫咪魔法师站在魔法图书馆的木桌旁，紫色星星帽微微晃动，桌上有一本打开的魔法书。", "它专注地挥动星星魔杖，几颗金色小星星从书页里慢慢飞出。", "星光围绕猫咪旋转，图书馆被柔和光芒点亮，猫咪从专注变成开心。"] } },
+      dino: { name: "小恐龙", emoji: "🦖", type: "动作成长型角色", desc: "活力、勇敢、成长，适合小挑战和任务感。", keywords: "彩虹桥、快递、风、飞行、勇气", color: "绿色 + 黄色 + 天空蓝", colors: ["#bbf7d0", "#bae6fd"], tags: ["动作", "挑战", "成长"], scenes: [{ name: "彩虹桥上空", desc: "彩虹、白云、高空感", emoji: "🌈", colors: ["#bae6fd", "#fde68a"] }, { name: "冒险山谷", desc: "小山坡、石头、风吹草动", emoji: "⛰️", colors: ["#bbf7d0", "#fed7aa"] }, { name: "快递小站", desc: "包裹、小路牌、出发点", emoji: "📦", colors: ["#fef3c7", "#bbf7d0"] }], tasks: ["飞过彩虹桥送快递", "被风吹歪后重新飞稳", "跳过一块大石头", "把包裹送到小房子门口"], emotions: ["紧张 → 自信", "害怕 → 勇敢", "着急 → 成功"], shots: ["跟着角色移动", "横向跟拍", "从远处看到近处"], examples: { simple: ["小恐龙背着黄色快递包，正在彩虹桥上飞。", "一阵风吹来，小恐龙差点被吹歪。", "小恐龙重新飞稳，继续开心地送快递。"], advanced: ["小恐龙背着黄色快递包，在彩虹桥上空认真飞行，前方是收件人的小房子。", "突然一阵风吹来，它身体一歪，快递包差点滑落，它赶紧用力拍动翅膀。", "小恐龙重新飞稳，表情从紧张变成自信，继续向前送快递。"] } },
+      gardener: { name: "机器人园丁", emoji: "🤖", type: "治愈照顾型角色", desc: "认真、温柔、可靠，适合植物成长和治愈故事。", keywords: "花园、浇水、种子、发芽、蘑菇", color: "白色 + 青绿 + 黄色", colors: ["#ccfbf1", "#fef3c7"], tags: ["治愈", "植物", "照顾"], scenes: [{ name: "森林小花园", desc: "蘑菇、小花、草地、浇水壶", emoji: "🌷", colors: ["#bbf7d0", "#fef3c7"] }, { name: "温室", desc: "花盆、小嫩芽、透明顶棚", emoji: "🌱", colors: ["#ccfbf1", "#dcfce7"] }, { name: "发光种子角", desc: "小土堆、发光种子、植物牌", emoji: "💡", colors: ["#fef3c7", "#bbf7d0"] }], tasks: ["给小花慢慢浇水", "发现一颗发光种子", "种下一颗小种子", "看见小芽慢慢长出来"], emotions: ["认真 → 满足", "困惑 → 惊喜", "安静 → 开心"], shots: ["固定镜头", "镜头慢慢靠近", "轻微俯视镜头"], examples: { simple: ["机器人园丁站在森林小花园里，手里拿着浇水壶。", "它慢慢给一朵小花浇水。", "小花轻轻抬起头，机器人开心地笑了。"], advanced: ["机器人园丁站在森林小花园中央，旁边有蘑菇、小花和一颗小小的发光种子。", "它蹲下来认真观察种子，然后轻轻给种子浇水。", "种子发出柔和光芒，冒出一片小嫩芽，机器人从认真变成惊喜。"] } },
+      rabbit: { name: "兔子骑士", emoji: "🐰", type: "勇敢守护型角色", desc: "善良、勇敢、有任务感，适合守护和出发故事。", keywords: "森林、披风、木剑、守护、蘑菇村", color: "白色 + 蓝色 + 银色", colors: ["#dbeafe", "#e5e7eb"], tags: ["勇敢", "守护", "任务"], scenes: [{ name: "森林小路", desc: "小路、树木、披风、冒险感", emoji: "🌲", colors: ["#bbf7d0", "#dbeafe"] }, { name: "蘑菇村门口", desc: "小村庄、木牌、小篱笆", emoji: "🍄", colors: ["#fed7aa", "#dcfce7"] }, { name: "山洞入口", desc: "小灯、石头、神秘入口", emoji: "🕯️", colors: ["#e5e7eb", "#fde68a"] }], tasks: ["拔出小木剑准备出发", "发现一条神秘线索", "站在朋友前面保护大家", "沿着森林小路勇敢前进"], emotions: ["担心 → 勇敢", "犹豫 → 决定", "紧张 → 自信"], shots: ["从远处看到近处", "镜头慢慢靠近", "跟着角色移动"], examples: { simple: ["兔子骑士站在森林小路上，披着蓝色小披风。", "它看到前方有奇怪的光，慢慢拔出小木剑。", "兔子骑士勇敢地向前走去。"], advanced: ["兔子骑士站在蘑菇村门口，听见森林深处传来奇怪的声音，表情有点担心。", "它深吸一口气，慢慢拔出小木剑，披风被微风轻轻吹动。", "兔子骑士迈步走向森林小路，表情从担心变成勇敢。"] } },
+      scientist: { name: "狐狸科学家", emoji: "🧪", type: "观察实验型角色", desc: "爱思考、爱观察，适合实验和发现类故事。", keywords: "实验室、按钮、泡泡、发明、观察", color: "橙色 + 青色 + 白色", colors: ["#fed7aa", "#a7f3d0"], tags: ["实验", "观察", "发现"], scenes: [{ name: "小实验室", desc: "试管、小桌子、护目镜", emoji: "🔬", colors: ["#ccfbf1", "#fed7aa"] }, { name: "发明角", desc: "小工具、图纸、按钮", emoji: "⚙️", colors: ["#e0f2fe", "#fef3c7"] }, { name: "观察台", desc: "放大镜、玻璃罩、小灯", emoji: "🔎", colors: ["#fef3c7", "#ccfbf1"] }], tasks: ["按下一个神秘按钮", "观察小泡泡冒出来", "测试一台新发明", "用放大镜看发光石头"], emotions: ["思考 → 明白", "怀疑 → 惊喜", "紧张 → 成功"], shots: ["固定镜头", "镜头慢慢靠近", "聚焦手部动作"], examples: { simple: ["狐狸科学家站在小实验室里，桌上有一个红色按钮。", "它认真地按下按钮，机器冒出彩色泡泡。", "狐狸科学家看见泡泡飞起来，开心地笑了。"], advanced: ["狐狸科学家戴着护目镜站在实验桌前，桌上有一个小机器和红色按钮。", "它先认真观察机器，然后小心地按下按钮，透明玻璃管里冒出彩色泡泡。", "泡泡慢慢飞到空中，发出柔和光芒，狐狸科学家从紧张变成成功的笑容。"] } }
+    };
+
+    var characterSheets = {
+      fox: {
+        avatarImage: "assets/characters/moonlight_little_fox_avatar.png",
+        sheetImage: "assets/characters/moonlight_little_fox_character_sheet.png"
+      },
+      panda: {
+        avatarImage: "assets/characters/panda_astronaut_avatar.png",
+        sheetImage: "assets/characters/panda_astronaut_character_design_sheet.png"
+      },
+      cat: {
+        avatarImage: "assets/characters/cute_cat_wizard_avatar.png",
+        sheetImage: "assets/characters/cute_cat_wizard_character_design_sheet.png"
+      },
+      dino: {
+        avatarImage: "assets/characters/cute_dinosaur_avatar.png",
+        sheetImage: "assets/characters/cute_dinosaur_delivery_mascot_design_sheet.png"
+      },
+      gardener: {
+        avatarImage: "assets/characters/cute_robot_gardener_avatar.png",
+        sheetImage: "assets/characters/cute_robot_gardener_character_design_sheet.png"
+      },
+      rabbit: {
+        avatarImage: "assets/characters/cute_bunny_knight_avatar.png",
+        sheetImage: "assets/characters/cute_bunny_knight_character_design_sheet.png"
+      },
+      scientist: {
+        avatarImage: "assets/characters/fox_scientist_avatar.png",
+        sheetImage: "assets/characters/fox_scientist_character_design_sheet.png"
+      }
+    };
+
+    Object.entries(characterSheets).forEach(([key, asset]) => {
+      if (roles[key]) Object.assign(roles[key], asset);
+    });
+
+    var styles = ["儿童绘本动画", "可爱漫画动画", "电影感动画", "温暖梦幻动画"];
+    var targetTools = {
+      doubao: { name: "豆包", desc: "适合课堂演示，提示词清楚一点。", suffix: "画面适合儿童课堂展示，构图清楚，动作不要太复杂。" },
+      jimeng: { name: "即梦", desc: "适合强调画面感和镜头。", suffix: "增强动画质感、镜头运动和光影层次，但不要过度炫技。" },
+      hailuo: { name: "海螺", desc: "适合强调动作连续性。", suffix: "强调动作连续、主体一致、不要跳帧、不要突然切换背景。" }
+    };
+
+    var storyboardOptions = {
+      starts: ["站在场景中央", "发现一个奇怪东西", "抬头看见远处发光", "准备开始任务", "听见一个小声音", "拿着自己的小道具"],
+      actions: ["慢慢靠近目标", "轻轻完成任务", "认真观察一下", "小心地打开", "勇敢向前走", "绕着目标看一圈", "伸手尝试", "稳稳地做完"],
+      changes: ["画面亮起来", "目标成功出现", "角色开心地笑了", "背景出现小光点", "任务完成了", "角色从紧张变自信", "朋友出现帮忙", "角色发现了秘密"],
+      extras: ["动作慢一点", "背景不要突然变化", "角色不要变形", "不要文字", "镜头慢慢靠近", "画面清晰明亮", "只做一个主要动作", "保持同一个角色"]
+    };
+
+    var draftStyles = [
+      { name: "清楚讲故事版", actionLead: "慢慢开始", changeLead: "任务完成后，画面变得更明亮" },
+      { name: "有惊喜版", actionLead: "先有点犹豫，然后尝试", changeLead: "最后出现一个小惊喜" },
+      { name: "电影镜头版", actionLead: "在镜头跟随下完成", changeLead: "镜头停在它的表情上" },
+      { name: "儿童短剧版", actionLead: "遇到一个小困难，但继续完成", changeLead: "小困难被解决" }
+    ];
+
+    var currentTool = "doubao";
+    var currentRoleKey = "fox";
+    var currentSceneIndex = 0;
+    var currentEmotion = roles.fox.emotions[0];
+    var currentShot = roles.fox.shots[0];
+    var currentStyle = styles[0];
+    var currentGrade = "simple";
+    var draftIndex = 0;
+    var records = JSON.parse(localStorage.getItem("aiVideoClassRecordsProductV2") || "[]");
+
+    var $ = (id) => document.getElementById(id);
+    var roleGrid = $("roleGrid"), rolePreview = $("rolePreview"), roleInfo = $("roleInfo"), sceneGrid = $("sceneGrid"), taskSelect = $("taskSelect"), emotionGroup = $("emotionGroup"), shotGroup = $("shotGroup"), styleGroup = $("styleGroup"), toolGrid = $("toolGrid"), productNav = $("productNav"), storyHelp = $("storyHelp"), storyHintText = $("storyHintText"), choiceSummary = $("choiceSummary"), gradeHint = $("gradeHint"), outputBox = $("outputBox"), recordBody = $("recordBody"), qualityGrid = $("qualityGrid"), posterPreview = $("posterPreview"), galleryGrid = $("galleryGrid"), galleryFilter = $("galleryFilter");
+
+    function getRole() { return roles[currentRoleKey]; }
+    function getScene() { return getRole().scenes[currentSceneIndex]; }
+
+    function getRoleImage(roleLike) {
+      return roleLike.avatarImage || roleLike.image || roleLike.roleImage || "";
+    }
+
+    function getRoleSheetImage(roleLike) {
+      return roleLike.sheetImage || roleLike.roleSheetImage || "";
+    }
+
+    function characterVisual(roleLike, className) {
+      var img = getRoleImage(roleLike);
+      var emoji = roleLike.emoji || roleLike.roleEmoji || "🎬";
+      var name = roleLike.name || roleLike.roleName || "角色";
+      var c1 = roleLike.colors?.[0] || "#fff0d2";
+      var c2 = roleLike.colors?.[1] || "#dbeafe";
+      if (!img) {
+        return `<div class="${className}" style="--c1:${c1};--c2:${c2};">${emoji}</div>`;
+      }
+      return `<div class="${className} has-image" style="--c1:${c1};--c2:${c2};"><img src="${img}" alt="${escapeHtml(name)}角色头像" loading="lazy" onerror="this.parentElement.classList.add('img-missing'); this.remove();"/><span class="emoji-fallback">${emoji}</span></div>`;
+    }
+
+    function renderRoles() {
+      roleGrid.innerHTML = "";
+      Object.entries(roles).forEach(([key, role]) => {
+        var card = document.createElement("div");
+        card.className = `role-card ${key === currentRoleKey ? "active" : ""}`;
+        card.onclick = () => { currentRoleKey = key; currentSceneIndex = 0; currentEmotion = role.emotions[0]; currentShot = role.shots[0]; draftIndex = 0; renderAll(); autoDraftStoryboard(false); };
+        card.innerHTML = `${characterVisual(role, "avatar-art")}<div><div class="role-title">${role.name}</div><div class="role-desc">${role.desc}</div><div class="role-mini-tags">${role.tags.map(t => `<span class="mini-tag">${t}</span>`).join("")}</div><div class="role-card-actions"><button class="sheet-link-btn" data-sheet-role="${key}">查看角色设定</button></div></div>`;
+        var sheetBtn = card.querySelector(".sheet-link-btn");
+        sheetBtn.onclick = (event) => { event.stopPropagation(); openCharacterSheet(key); };
+        roleGrid.appendChild(card);
+      });
+    }
+
+    function renderRolePreview() {
+      var role = getRole();
+      var hasSheet = !!getRoleSheetImage(role);
+      var sheetButton = hasSheet ? `<div class="role-card-actions"><button class="sheet-link-btn" id="previewSheetBtn">查看三视图 / 表情 / 动作</button></div>` : "";
+      rolePreview.innerHTML = `${characterVisual(role, "big-avatar")}<div><h2 style="margin:0 0 8px;">${role.name}</h2><p style="margin:0 0 10px;color:#4b5563;line-height:1.65;">${role.type}｜${role.desc}</p><div class="role-mini-tags">${role.tags.map(t => `<span class="mini-tag">${t}</span>`).join("")}</div>${sheetButton}</div>`;
+      var btn = $("previewSheetBtn");
+      if (btn) btn.onclick = () => openCharacterSheet(currentRoleKey);
+      roleInfo.textContent = `关键词：${role.keywords}
+建议色彩：${role.color}
+最适合的创作方向：${role.type}
+一致性参考：需要时点击“查看三视图 / 表情 / 动作”`;
+    }
+
+    function renderScenes() {
+      var role = getRole();
+      sceneGrid.innerHTML = "";
+      role.scenes.forEach((scene, index) => {
+        var card = document.createElement("div");
+        card.className = `scene-card ${index === currentSceneIndex ? "active" : ""}`;
+        card.style.setProperty("--s1", scene.colors[0]);
+        card.style.setProperty("--s2", scene.colors[1]);
+        card.dataset.emoji = scene.emoji;
+        card.onclick = () => { currentSceneIndex = index; draftIndex = 0; renderScenes(); updateStoryHint(); autoDraftStoryboard(false); generatePrompt(false); };
+        card.innerHTML = `<strong>${scene.name}</strong><span>${scene.desc}</span>`;
+        sceneGrid.appendChild(card);
+      });
+    }
+
+    function fillSelect(select, items) { select.innerHTML = ""; items.forEach(item => { var opt = document.createElement("option"); opt.value = item; opt.textContent = item; select.appendChild(opt); }); }
+    function renderPills(container, items, activeValue, onPick) { container.innerHTML = ""; items.forEach(item => { var pill = document.createElement("div"); pill.className = `pill ${item === activeValue ? "active" : ""}`; pill.textContent = item; pill.onclick = () => onPick(item); container.appendChild(pill); }); }
+
+    function renderControls() {
+      var role = getRole();
+      fillSelect(taskSelect, role.tasks);
+      renderPills(emotionGroup, role.emotions, currentEmotion, (item) => { currentEmotion = item; renderControls(); autoDraftStoryboard(false); });
+      renderPills(shotGroup, role.shots, currentShot, (item) => { currentShot = item; renderControls(); autoDraftStoryboard(false); });
+      renderPills(styleGroup, styles, currentStyle, (item) => { currentStyle = item; renderControls(); generatePrompt(false); });
+      renderTools();
+      updateStoryHint();
+    }
+
+    function renderTools() {
+      toolGrid.innerHTML = Object.entries(targetTools).map(([key, tool]) => `<div class="tool-card ${key === currentTool ? "active" : ""}" data-tool="${key}"><strong>${tool.name}</strong><span>${tool.desc}</span></div>`).join("");
+      toolGrid.querySelectorAll(".tool-card").forEach(card => { card.onclick = () => { currentTool = card.dataset.tool; renderTools(); generatePrompt(false); }; });
+    }
+
+    function renderStoryHelp() {
+      var groups = [
+        { title: "第 1 镜头：选开场方式", target: "frame1", items: storyboardOptions.starts },
+        { title: "第 2 镜头：选动作方式", target: "frame2", items: storyboardOptions.actions },
+        { title: "第 3 镜头：选变化方式", target: "frame3", items: storyboardOptions.changes }
+      ];
+      storyHelp.innerHTML = groups.map(group => `<div class="story-help-card"><h3>${group.title}</h3><div class="story-chip-group">${group.items.map(item => `<span class="story-chip" data-target="${group.target}" data-text="${item}">${item}</span>`).join("")}</div></div>`).join("");
+      storyHelp.querySelectorAll(".story-chip").forEach(chip => chip.addEventListener("click", () => {
+        var textarea = $(chip.dataset.target);
+        textarea.value = buildChipSentence(chip.dataset.target, chip.dataset.text);
+        generatePrompt(false);
+      }));
+    }
+
+    function buildChipSentence(target, chipText) {
+      var role = getRole(), scene = getScene(), task = taskSelect.value || role.tasks[0];
+      var emotionParts = currentEmotion.split("→").map(s => s.trim());
+      var fromEmotion = emotionParts[0] || "好奇";
+      var toEmotion = emotionParts[1] || "开心";
+      if (target === "frame1") {
+        return currentGrade === "simple"
+          ? `${role.name}在${scene.name}里，${chipText}，准备${task}。`
+          : `${role.name}出现在${scene.name}里，周围有${scene.desc}。它${chipText}，准备${task}，表情有点${fromEmotion}。`;
+      }
+      if (target === "frame2") {
+        return currentGrade === "simple"
+          ? `${role.name}${chipText}，完成“${task}”这个主要动作。`
+          : `${role.name}${chipText}，完成“${task}”这个主要动作，${currentShot}，画面不要加入第二个动作。`;
+      }
+      return currentGrade === "simple"
+        ? `任务完成后，${chipText}，${role.name}从${fromEmotion}变成${toEmotion}。`
+        : `任务完成后，${chipText}，场景出现清楚的结果变化，${role.name}从${fromEmotion}变成${toEmotion}。`;
+    }
+
+    function updateStoryHint() {
+      var role = getRole(), scene = getScene(), task = taskSelect.value || role.tasks[0];
+      storyHintText.textContent = `当前选择已经够了。现在只做导演整理：第 1 镜头交代“${role.name}在哪里”，第 2 镜头交代“怎么${task}”，第 3 镜头交代“最后有什么变化”。`;
+      if (choiceSummary) {
+        choiceSummary.innerHTML = [
+          ["角色", role.name],
+          ["场景", scene.name],
+          ["任务", task],
+          ["情绪", currentEmotion],
+          ["镜头", currentShot]
+        ].map(([k, v]) => `<div class="choice-item"><strong>${k}</strong><span>${escapeHtml(v)}</span></div>`).join("");
+      }
+    }
+
+    function autoDraftStoryboard(showToast = true) {
+      var role = getRole(), scene = getScene(), task = taskSelect.value || role.tasks[0];
+      var emotionParts = currentEmotion.split("→").map(s => s.trim());
+      var fromEmotion = emotionParts[0] || "好奇";
+      var toEmotion = emotionParts[1] || "开心";
+      var variant = draftStyles[draftIndex % draftStyles.length];
+
+      if (currentGrade === "simple") {
+        $("frame1").value = `${role.name}在${scene.name}里，准备${task}。`;
+        $("frame2").value = `${role.name}${variant.actionLead}${task}，只做这一个主要动作。`;
+        $("frame3").value = `${variant.changeLead}，${role.name}从${fromEmotion}变成${toEmotion}。`;
+      } else {
+        $("frame1").value = `${role.name}出现在${scene.name}里，周围有${scene.desc}。它准备${task}，表情有点${fromEmotion}。`;
+        $("frame2").value = `${role.name}${variant.actionLead}${task}，${currentShot}，画面只突出这一个主要动作。`;
+        $("frame3").value = `${variant.changeLead}，场景出现清楚的结果变化，${role.name}的表情从${fromEmotion}变成${toEmotion}。`;
+      }
+      generatePrompt(false);
+      if (showToast) flashButton("autoDraftBtn", `已整理：${variant.name}`);
+    }
+
+    function nextDraft() { draftIndex = (draftIndex + 1) % draftStyles.length; autoDraftStoryboard(true); flashButton("nextDraftBtn", `换到：${draftStyles[draftIndex].name}`); }
+
+    function fillExample() {
+      var ex = getRole().examples[currentGrade];
+      $("frame1").value = ex[0]; $("frame2").value = ex[1]; $("frame3").value = ex[2];
+      generatePrompt(false);
+      flashButton("fillExampleBtn", "已填入 ✓");
+    }
+
+    function getFormData() {
+      var role = getRole(), scene = getScene();
+      return { className: $("className").value.trim(), groupName: $("groupName").value.trim(), studentNames: $("studentNames").value.trim(), roleName: role.name, roleEmoji: role.emoji, roleImage: role.avatarImage || role.image || "", roleSheetImage: role.sheetImage || "", sceneName: scene.name, task: taskSelect.value, emotion: currentEmotion, shot: currentShot, style: currentStyle, grade: currentGrade === "simple" ? "三四年级简单版" : "五六年级进阶版", frame1: $("frame1").value.trim(), frame2: $("frame2").value.trim(), frame3: $("frame3").value.trim(), extra: $("extraReq").value.trim(), teacherComment: $("teacherComment")?.value.trim() || "", scores: getScores() };
+    }
+
+    function getScores() { return { role: $("scoreRole")?.value || "⭐⭐⭐", action: $("scoreAction")?.value || "⭐⭐⭐", change: $("scoreChange")?.value || "⭐⭐⭐", camera: $("scoreCamera")?.value || "⭐⭐⭐" }; }
+
+    function buildPrompt() {
+      var data = getFormData();
+      var toolSuffix = targetTools[currentTool]?.suffix || "";
+      var extra = data.extra || "动作自然，节奏清楚，角色不要变形，背景不要突然变化，不要文字。";
+      var length = currentGrade === "simple" ? "8 秒" : "8–12 秒";
+      var gradeExtra = currentGrade === "simple" ? "画面要简单清楚，只突出一个主要动作。" : "画面要有开始、中间和结尾的感觉，镜头运动自然，情绪变化要明显。";
+      return `请生成一个 ${length} 的 ${data.style} 视频。
+
+主角：${data.roleName}。请保持角色外观、颜色和关键道具一致。
+场景：${data.sceneName}。
+任务：${data.task}。
+
+三格分镜：
+1. 开始：${data.frame1 || "（请填写第 1 格）"}
+2. 动作：${data.frame2 || "（请填写第 2 格）"}
+3. 变化：${data.frame3 || "（请填写第 3 格）"}
+
+情绪变化：${data.emotion}。
+镜头：${data.shot}。
+
+要求：${gradeExtra}${extra}
+目标工具优化：${toolSuffix}`;
+    }
+
+    function generatePrompt(showToast = true) { outputBox.textContent = buildPrompt(); if (showToast) flashButton("generateBtn", "已生成 ✓"); renderPrintSheet(); renderQualityCheck(); updateProgress(); renderPosterPreview(); }
+
+    function renderQualityCheck() {
+      var data = getFormData();
+      var checks = [{ title: "角色清楚", pass: !!data.roleName, hint: data.roleName || "还没选角色" }, { title: "一个动作", pass: data.frame2.length > 4 && data.frame2.length < 100, hint: data.frame2.length >= 100 ? "动作可能太多" : "动作要具体" }, { title: "有变化", pass: data.frame3.length > 4, hint: data.frame3 ? "结尾已填写" : "结尾要有变化" }, { title: "规则完整", pass: (data.extra || "角色不要变形").includes("不要") || (data.extra || "").length > 0, hint: "建议保留防变形规则" }];
+      qualityGrid.innerHTML = checks.map(c => `<div class="quality-item ${c.pass ? "pass" : "warn"}"><strong>${c.pass ? "✓" : "!"} ${c.title}</strong>${c.hint}</div>`).join("");
+    }
+
+    function updateProgress() {
+      var data = getFormData();
+      var done = { info: !!(data.groupName || data.studentNames || data.className), role: !!data.roleName, scene: !!data.sceneName, shot: !!(data.task && data.emotion && data.shot && data.style), story: !!(data.frame1 && data.frame2 && data.frame3) };
+      var activeKey = !done.info ? "info" : !done.role ? "role" : !done.scene ? "scene" : !done.shot ? "shot" : "story";
+      productNav.querySelectorAll(".nav-step").forEach(step => { var key = step.dataset.step; step.classList.toggle("done", !!done[key]); step.classList.toggle("active", key === activeKey || (key === "story" && done.story)); var status = step.querySelector(".nav-step-status"); if (status) status.textContent = done[key] ? "✓" : "·"; });
+    }
+
+    function generateTeacherExample() {
+      var d = getFormData();
+      var text = `老师演示话术：
+
+我们现在选的是「${d.roleName}」，场景是「${d.sceneName}」，任务是「${d.task}」。注意，第 5 步不是重新编故事，而是做导演整理。
+
+导演整理有三个问题：
+第一镜头：角色在哪里，准备做什么？
+第二镜头：角色怎么完成这个任务？只保留一个主要动作。
+第三镜头：任务完成后，画面或情绪发生了什么变化？
+
+这个小组当前的故事是：
+开始：${d.frame1 || "……"}
+动作：${d.frame2 || "……"}
+变化：${d.frame3 || "……"}
+
+下一步我们检查：画面清不清楚？动作是不是只有一个？角色有没有变形？最后有没有一个看得见的变化？`;
+      $("teacherExampleBox").value = text;
+      flashButton("teacherExampleBtn", "老师示例已生成 ✓");
+    }
+
+    function generateComment() {
+      var d = getFormData();
+      var suggestions = [];
+      if (!d.frame1) suggestions.push("第 1 格还需要说明角色一开始在哪里。 ");
+      if (d.frame2.length > 90) suggestions.push("第 2 格动作略多，可以减少到一个主要动作。 ");
+      if (!d.frame3) suggestions.push("第 3 格需要补一个结果或变化。 ");
+      if (!suggestions.length) suggestions.push("故事结构完整，有开始、动作和变化。下一版可以让情绪变化更明显，镜头更稳定。 ");
+      $("teacherComment").value = `点评：${d.groupName || "这个小组"}选择了「${d.roleName}」和「${d.sceneName}」，故事方向清楚。${suggestions.join("")}评分：角色一致 ${d.scores.role}｜动作清楚 ${d.scores.action}｜有变化 ${d.scores.change}｜镜头稳定 ${d.scores.camera}`;
+      generatePrompt(false);
+      flashButton("generateCommentBtn", "点评已生成 ✓");
+    }
+
+    function copyPrompt() { navigator.clipboard.writeText(outputBox.textContent).then(() => flashButton("copyBtn", "已复制 ✓")).catch(() => alert("复制失败，可以手动选中提示词复制。")); }
+    function copyTeacherExample() { navigator.clipboard.writeText($("teacherExampleBox").value || "").then(() => flashButton("copyTeacherExampleBtn", "已复制 ✓")); }
+    function copyComment() { navigator.clipboard.writeText($("teacherComment").value || "").then(() => flashButton("copyCommentBtn", "已复制 ✓")); }
+
+    function resetFrames() { ["frame1", "frame2", "frame3", "extraReq"].forEach(id => $(id).value = ""); outputBox.textContent = "选择角色并填写分镜后，点击“生成完整视频提示词”。"; renderPrintSheet(); renderPosterPreview(); renderQualityCheck(); updateProgress(); }
+
+    function openCharacterSheet(roleKey) {
+      var role = roles[roleKey];
+      if (!role) return;
+      var sheetImage = getRoleSheetImage(role);
+      if (!sheetImage) {
+        alert("这个角色还没有配置三视图设定图。");
+        return;
+      }
+      $("sheetModalTitle").textContent = `${role.name}｜三视图、表情和动作`;
+      $("sheetModalImage").src = sheetImage;
+      $("sheetModalImage").alt = `${role.name}角色三视图、表情和动作设定图`;
+      $("sheetAssetPath").textContent = sheetImage;
+      $("sheetModal").classList.add("open");
+      $("sheetModal").setAttribute("aria-hidden", "false");
+    }
+
+    function closeCharacterSheet() {
+      $("sheetModal").classList.remove("open");
+      $("sheetModal").setAttribute("aria-hidden", "true");
+    }
+
+    function flashButton(id, text) { var btn = $(id); if (!btn) return; var old = btn.textContent; btn.textContent = text; setTimeout(() => btn.textContent = old, 1200); }
+
+    function renderPrintSheet() {
+      var data = getFormData();
+      var prompt = buildPrompt();
+      $("printSheet").innerHTML = `<div class="print-title">AI 视频分镜卡</div><div class="print-meta"><div>班级/课程：${escapeHtml(data.className || "__________")}</div><div>小组名：${escapeHtml(data.groupName || "__________")}</div><div>成员：${escapeHtml(data.studentNames || "__________")}</div><div>版本：${escapeHtml(data.grade)}</div><div>角色：${escapeHtml(data.roleName)}</div><div>场景：${escapeHtml(data.sceneName)}</div><div>任务：${escapeHtml(data.task)}</div><div>情绪/镜头：${escapeHtml(data.emotion)}｜${escapeHtml(data.shot)}</div></div><div class="print-frames"><div class="print-frame"><strong>第 1 格：开始</strong>
+${escapeHtml(data.frame1 || "")}</div><div class="print-frame"><strong>第 2 格：动作</strong>
+${escapeHtml(data.frame2 || "")}</div><div class="print-frame"><strong>第 3 格：变化</strong>
+${escapeHtml(data.frame3 || "")}</div></div><div class="print-title" style="font-size:20px;">完整视频提示词</div><div class="print-prompt">${escapeHtml(prompt)}</div>`;
+    }
+
+    function renderPosterPreview(record = null) {
+      var d = record || getFormData();
+      posterPreview.dataset.emoji = d.roleEmoji || getRole().emoji;
+      posterPreview.innerHTML = [
+        '<div>',
+          '<div class="poster-title">' + escapeHtml(d.groupName || '未命名小组') + '的 AI 视频故事</div>',
+          '<div class="poster-subtitle">' + escapeHtml(d.roleName) + '｜' + escapeHtml(d.sceneName) + '｜' + escapeHtml(d.task) + '</div>',
+        '</div>',
+        '<div class="poster-frames">',
+          '<div class="poster-frame"><strong>开始</strong>' + escapeHtml(d.frame1 || '等待填写……') + '</div>',
+          '<div class="poster-frame"><strong>动作</strong>' + escapeHtml(d.frame2 || '等待填写……') + '</div>',
+          '<div class="poster-frame"><strong>变化</strong>' + escapeHtml(d.frame3 || '等待填写……') + '</div>',
+        '</div>',
+        '<div class="poster-footer">',
+          '<span>' + escapeHtml(d.className || 'AI 小小导演课堂') + '</span>',
+          '<span>' + escapeHtml(d.studentNames || '小组成员') + '</span>',
+        '</div>'
+      ].join('');
+    }
+
+    async function exportPoster() {
+      renderPosterPreview();
+      var svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:1200px;height:900px;background:#fff7e8;font-family:PingFang SC,Microsoft YaHei,sans-serif;padding:48px;box-sizing:border-box;"><div style="height:804px;border-radius:42px;background:linear-gradient(135deg,#fff3d7,#fff 48%,#edf7ff);border:6px solid #ffd58b;padding:42px;box-sizing:border-box;position:relative;overflow:hidden;"><div style="position:absolute;right:70px;top:70px;font-size:170px;opacity:.16;transform:rotate(-8deg);">${escapeXml(getFormData().roleEmoji)}</div><div style="font-size:58px;font-weight:900;line-height:1.05;color:#243044;max-width:850px;">${escapeXml(getFormData().groupName || "未命名小组")}的 AI 视频故事</div><div style="font-size:28px;font-weight:800;color:#7c3c08;margin-top:18px;">${escapeXml(getFormData().roleName)}｜${escapeXml(getFormData().sceneName)}｜${escapeXml(getFormData().task)}</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:90px;"><div style="min-height:230px;border-radius:28px;background:rgba(255,255,255,.86);border:4px solid rgba(255,193,94,.55);padding:22px;font-size:26px;line-height:1.45;color:#374151;"><b style="color:#7c3c08;display:block;margin-bottom:10px;">开始</b>${escapeXml(getFormData().frame1 || "等待填写")}</div><div style="min-height:230px;border-radius:28px;background:rgba(255,255,255,.86);border:4px solid rgba(255,193,94,.55);padding:22px;font-size:26px;line-height:1.45;color:#374151;"><b style="color:#7c3c08;display:block;margin-bottom:10px;">动作</b>${escapeXml(getFormData().frame2 || "等待填写")}</div><div style="min-height:230px;border-radius:28px;background:rgba(255,255,255,.86);border:4px solid rgba(255,193,94,.55);padding:22px;font-size:26px;line-height:1.45;color:#374151;"><b style="color:#7c3c08;display:block;margin-bottom:10px;">变化</b>${escapeXml(getFormData().frame3 || "等待填写")}</div></div><div style="position:absolute;left:48px;right:48px;bottom:42px;display:flex;justify-content:space-between;font-size:24px;font-weight:800;color:#4b5563;"><span>${escapeXml(getFormData().className || "AI 小小导演课堂")}</span><span>${escapeXml(getFormData().studentNames || "小组成员")}</span></div></div></div></foreignObject></svg>`;
+      var url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+      var a = document.createElement("a"); a.href = url; a.download = `${sanitizeFilename(getFormData().groupName || "AI视频作品海报")}.svg`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      flashButton("exportPosterBtn", "海报已导出 ✓");
+    }
+
+    function saveRecord() {
+      generatePrompt(false);
+      var data = getFormData();
+      var record = { id: Date.now(), time: new Date().toLocaleString(), tool: currentTool, ...data, prompt: outputBox.textContent };
+      records.unshift(record);
+      localStorage.setItem("aiVideoClassRecordsProductV2", JSON.stringify(records));
+      renderRecords(); renderGallery(); renderGalleryFilter();
+      flashButton("saveRecordBtn", "已保存 ✓");
+    }
+
+    function renderRecords() {
+      if (!records.length) { recordBody.innerHTML = `<tr><td colspan="8" style="color:#6b7280;">还没有保存作品记录。</td></tr>`; return; }
+      recordBody.innerHTML = records.map(r => `<tr><td>${escapeHtml(r.time)}</td><td><strong>${escapeHtml(r.groupName || "未命名小组")}</strong><br/>${escapeHtml(r.studentNames || "")}</td><td>${escapeHtml(r.roleName)}</td><td>${escapeHtml(r.sceneName)}</td><td>${escapeHtml(r.task)}</td><td>${escapeHtml(r.emotion)}<br/>${escapeHtml(r.shot)}</td><td>${escapeHtml((r.teacherComment || "未点评").slice(0, 42))}${(r.teacherComment || "").length > 42 ? "..." : ""}</td><td><div class="small-actions"><button class="secondary small-btn" onclick="loadRecord(${r.id})">载入</button><button class="secondary small-btn" onclick="copyRecordPrompt(${r.id})">复制</button><button class="secondary small-btn" onclick="posterFromRecord(${r.id})">海报</button><button class="danger small-btn" onclick="deleteRecord(${r.id})">删除</button></div></td></tr>`).join("");
+    }
+
+    function renderGalleryFilter() {
+      var names = [...new Set(records.map(r => r.roleName))];
+      var current = galleryFilter.value || "all";
+      galleryFilter.innerHTML = `<option value="all">全部角色</option>` + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+      galleryFilter.value = names.includes(current) ? current : "all";
+    }
+
+    function renderGallery() {
+      var filter = galleryFilter.value || "all";
+      var list = records.filter(r => filter === "all" || r.roleName === filter).slice(0, 12);
+      if (!list.length) { galleryGrid.innerHTML = `<div class="gallery-card" style="grid-column:1/-1;color:#6b7280;">还没有作品。保存小组作品后，这里会自动生成展示墙。</div>`; return; }
+      galleryGrid.innerHTML = list.map(r => `<div class="gallery-card"><div class="gallery-top"><div><h3>${escapeHtml(r.groupName || "未命名小组")}</h3><div class="gallery-meta">${escapeHtml(r.roleName)}｜${escapeHtml(r.sceneName)}<br/>${escapeHtml(r.studentNames || "")}</div></div>${characterVisual(r, "gallery-emoji")}</div><div class="gallery-story"><strong>故事：</strong>${escapeHtml(r.frame1 || "")} ${escapeHtml(r.frame2 || "")} ${escapeHtml(r.frame3 || "")}</div><div class="small-actions" style="margin-top:10px;"><button class="secondary small-btn" onclick="loadRecord(${r.id})">打开</button><button class="secondary small-btn" onclick="posterFromRecord(${r.id})">生成海报</button></div></div>`).join("");
+    }
+
+    function loadRecord(id) {
+      var r = records.find(item => item.id === id); if (!r) return;
+      var roleKey = Object.keys(roles).find(k => roles[k].name === r.roleName) || "fox";
+      currentRoleKey = roleKey; currentSceneIndex = roles[roleKey].scenes.findIndex(s => s.name === r.sceneName); if (currentSceneIndex < 0) currentSceneIndex = 0;
+      currentEmotion = r.emotion; currentShot = r.shot; currentStyle = r.style; currentTool = r.tool || "doubao"; currentGrade = r.grade.includes("进阶") ? "advanced" : "simple";
+      $("className").value = r.className || ""; $("groupName").value = r.groupName || ""; $("studentNames").value = r.studentNames || "";
+      $("frame1").value = r.frame1 || ""; $("frame2").value = r.frame2 || ""; $("frame3").value = r.frame3 || ""; $("extraReq").value = r.extra || ""; $("teacherComment").value = r.teacherComment || "";
+      document.querySelectorAll(".grade-btn").forEach(b => b.classList.toggle("active", b.dataset.grade === currentGrade));
+      gradeHint.textContent = currentGrade === "simple" ? "三四年级：每个镜头只写一句话。第 1 镜头写“在哪里”，第 2 镜头写“怎么做”，第 3 镜头写“有什么变化”。" : "五六年级：还是 3 个镜头，但要加上初始情绪、镜头运动、动作速度和结果变化。";
+      renderAll(); taskSelect.value = r.task; generatePrompt(false); window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function posterFromRecord(id) { var r = records.find(item => item.id === id); if (!r) return; renderPosterPreview(r); document.querySelector(".poster-card").scrollIntoView({ behavior: "smooth" }); }
+    function copyRecordPrompt(id) { var r = records.find(item => item.id === id); if (!r) return; navigator.clipboard.writeText(r.prompt).then(() => alert("已复制该组提示词。")); }
+    function deleteRecord(id) { records = records.filter(item => item.id !== id); localStorage.setItem("aiVideoClassRecordsProductV2", JSON.stringify(records)); renderRecords(); renderGallery(); renderGalleryFilter(); }
+    function clearRecords() { if (!confirm("确定清空全部作品记录吗？")) return; records = []; localStorage.removeItem("aiVideoClassRecordsProductV2"); renderRecords(); renderGallery(); renderGalleryFilter(); }
+
+    function exportCsv() {
+      var header = ["时间", "班级", "小组", "成员", "角色", "场景", "任务", "情绪", "镜头", "风格", "第1格", "第2格", "第3格", "老师点评", "提示词"];
+      var rows = records.map(r => [
+        r.time,
+        r.className,
+        r.groupName,
+        r.studentNames,
+        r.roleName,
+        r.sceneName,
+        r.task,
+        r.emotion,
+        r.shot,
+        r.style,
+        r.frame1,
+        r.frame2,
+        r.frame3,
+        r.teacherComment,
+        r.prompt
+      ]);
+
+      var csv = [header, ...rows]
+        .map(row => row.map(value => '"' + String(value ?? "").replace(/"/g, '""') + '"').join(","))
+        .join(String.fromCharCode(10));
+
+      downloadFile(
+        "AI视频课小组作品记录.csv",
+        String.fromCharCode(0xFEFF) + csv,
+        "text/csv;charset=utf-8"
+      );
+    }
+
+    function downloadFile(filename, content, type) { var blob = new Blob([content], { type }); var url = URL.createObjectURL(blob); var a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+    function escapeHtml(text) { return String(text || "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c])); }
+    function escapeXml(text) { return String(text || "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&apos;",'"':"&quot;"}[c])); }
+    function sanitizeFilename(text) { return String(text || "poster").replace(/[\/:*?"<>|]/g, "_").slice(0, 50); }
+
+    function renderAll() { renderRoles(); renderRolePreview(); renderScenes(); renderControls(); renderStoryHelp(); updateStoryHint(); generatePrompt(false); renderPosterPreview(); }
+
+    document.querySelectorAll(".mode-pill").forEach(btn => btn.addEventListener("click", () => { document.querySelectorAll(".mode-pill").forEach(item => item.classList.remove("active")); btn.classList.add("active"); document.body.classList.toggle("student-mode", btn.dataset.mode === "student"); }));
+    document.querySelectorAll(".grade-btn").forEach(btn => btn.addEventListener("click", () => { document.querySelectorAll(".grade-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); currentGrade = btn.dataset.grade; gradeHint.textContent = currentGrade === "simple" ? "三四年级：每个镜头只写一句话。第 1 镜头写“在哪里”，第 2 镜头写“怎么做”，第 3 镜头写“有什么变化”。" : "五六年级：还是 3 个镜头，但要加上初始情绪、镜头运动、动作速度和结果变化。"; autoDraftStoryboard(false); }));
+    ["frame1", "frame2", "frame3", "extraReq", "className", "groupName", "studentNames", "teacherComment", "scoreRole", "scoreAction", "scoreChange", "scoreCamera"].forEach(id => { var el = $(id); if (el) el.addEventListener("input", () => generatePrompt(false)); if (el && el.tagName === "SELECT") el.addEventListener("change", () => generatePrompt(false)); });
+    taskSelect.addEventListener("change", () => { updateStoryHint(); autoDraftStoryboard(false); });
+    galleryFilter.addEventListener("change", renderGallery);
+    $("autoDraftBtn").onclick = () => autoDraftStoryboard(true);
+    $("nextDraftBtn").onclick = nextDraft;
+    $("fillExampleBtn").onclick = fillExample;
+    $("teacherExampleBtn").onclick = generateTeacherExample;
+    $("copyTeacherExampleBtn").onclick = copyTeacherExample;
+    $("generateCommentBtn").onclick = generateComment;
+    $("copyCommentBtn").onclick = copyComment;
+    $("generateBtn").onclick = () => generatePrompt(true);
+    $("copyBtn").onclick = copyPrompt;
+    $("resetBtn").onclick = resetFrames;
+    $("presentationBtn").onclick = () => { document.body.classList.toggle("presentation"); $("presentationBtn").textContent = document.body.classList.contains("presentation") ? "退出大屏" : "大屏模式"; };
+    $("printBtn").onclick = () => { renderPrintSheet(); window.print(); };
+    $("saveRecordBtn").onclick = saveRecord;
+    $("exportCsvBtn").onclick = exportCsv;
+    $("clearRecordsBtn").onclick = clearRecords;
+    $("exportPosterBtn").onclick = exportPoster;
+    $("refreshPosterBtn").onclick = () => { renderPosterPreview(); flashButton("refreshPosterBtn", "已刷新 ✓"); };
+    $("showcaseBtn").onclick = () => document.querySelector(".gallery-panel").scrollIntoView({ behavior: "smooth" });
+    $("closeSheetBtn").onclick = closeCharacterSheet;
+    $("sheetBackdrop").onclick = closeCharacterSheet;
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeCharacterSheet(); });
+
+    window.loadRecord = loadRecord; window.copyRecordPrompt = copyRecordPrompt; window.deleteRecord = deleteRecord; window.posterFromRecord = posterFromRecord;
+
+    renderAll(); autoDraftStoryboard(false); renderRecords(); renderGalleryFilter(); renderGallery(); renderPrintSheet(); renderQualityCheck(); updateProgress();
+  </script>
+</body>
+</html>
