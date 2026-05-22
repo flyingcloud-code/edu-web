@@ -1,19 +1,227 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 小小音乐家 - 小猫学习站</title>
-  <style>
-    body { font-family: system-ui, sans-serif; text-align: center; padding: 80px 20px; background: #fef9fb; color: #223047; }
-    h1 { font-size: 36px; }
-    p { color: #667085; margin-top: 12px; }
-    a { color: #2387ff; text-decoration: none; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI音乐小作曲家 v4.2｜歌词模板 + 编辑器版</title>
+<style>
+:root{--blue:#1a73e8;--green:#34a853;--yellow:#fbbc04;--red:#ea4335;--ink:#202124;--sub:#5f6368;--line:#dadce0;--bg:#f8fbff;--soft:#e8f0fe}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif;color:var(--ink);background:linear-gradient(180deg,#fbfdff,#f7faff 60%,#fff)}
+.page{max-width:1120px;margin:0 auto;padding:20px}
+.nav{background:white;border:1px solid var(--line);border-radius:20px;padding:14px 18px;margin-bottom:20px;box-shadow:0 6px 18px rgba(60,64,67,.08)}
+.nav-title{font-weight:800;font-size:18px}.nav-links{margin-top:10px}.nav-links a{display:inline-block;margin:4px 10px 4px 0;color:var(--blue);text-decoration:none;font-size:14px}
+.panel{background:white;border:1px solid var(--line);border-radius:24px;padding:24px;margin:18px 0;box-shadow:0 8px 22px rgba(60,64,67,.08)}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:center}
+.tag{display:inline-block;padding:7px 12px;border-radius:999px;background:#e8f0fe;color:var(--blue);font-size:13px;font-weight:800}
+h1{font-size:48px;line-height:1.1;margin:16px 0}h2{font-size:28px;margin:0 0 10px}h3{font-size:20px;margin:0 0 10px}p{color:var(--sub);line-height:1.65}.gradient{background:linear-gradient(90deg,var(--blue),var(--green),var(--yellow),var(--red));-webkit-background-clip:text;color:transparent}
+.img{width:100%;display:block;border:1px solid var(--line);border-radius:20px;box-shadow:0 8px 18px rgba(60,64,67,.10)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.card{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff}.card a{color:var(--blue);font-weight:800;text-decoration:none}.card a:hover{text-decoration:underline}
+label{font-weight:800;display:block;margin:12px 0 6px}input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font-size:15px;font-family:inherit;background:white}textarea{min-height:90px;resize:vertical}
+button{border:1px solid var(--line);border-radius:999px;background:white;color:var(--blue);padding:10px 15px;font-size:15px;font-weight:800;cursor:pointer;margin:4px 6px 4px 0}.primary{background:var(--blue);border-color:var(--blue);color:white}
+.choice-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.choice{border:1px solid var(--line);border-radius:14px;padding:10px;font-weight:600;background:#fff}.choice input{width:auto;margin-right:6px}
+.prompt{white-space:pre-wrap;line-height:1.7;background:#f8fbff;border:1px solid #c6dafc;border-radius:18px;padding:16px;min-height:360px;font-size:15px}.note{background:#fff8e1;border:1px solid #f3d37a;border-radius:18px;padding:14px;color:#5f4b17;line-height:1.65}
+.ctaImg{display:grid;grid-template-rows:auto 1fr;gap:12px}.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#202124;color:white;padding:10px 16px;border-radius:999px;display:none}
+.footerBox{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}.mini{font-size:13px;color:var(--sub)}.presetBox{border:1px dashed #c6dafc;background:#f8fbff;border-radius:18px;padding:12px;margin:12px 0}.presetBox button{font-size:14px;padding:8px 12px}.prompt-editor{width:100%;font-family:Arial,'Microsoft YaHei','PingFang SC',sans-serif}.status{margin-top:8px;font-size:13px;color:var(--sub)}
+@media(max-width:860px){.hero,.grid2,.grid3,.grid4,.footerBox{grid-template-columns:1fr}h1{font-size:38px}}
+</style>
 </head>
 <body>
-  <a href="../">← 返回首页</a>
-  <h1>🎵 AI 小小音乐家</h1>
-  <p>用 AI 创作属于自己的音乐 —— 模块建设中...</p>
+<div class="page">
+
+  <div class="nav">
+    <div class="nav-title">♪ AI音乐小作曲家 v4.2｜歌词模板 + 编辑器版</div>
+    <div class="nav-links">
+      <a href="#examples">示例音乐</a>
+      <a href="#story">故事</a>
+      <a href="#type">类型与歌词</a>
+      <a href="#music">音乐按钮</a>
+      <a href="#structure">音乐结构</a>
+      <a href="#prompt">提示词</a>
+    </div>
+  </div>
+
+  <section class="panel hero">
+    <div>
+      <span class="tag">Google-style 浅色科技风 + JS 拆分修复</span>
+      <h1><span class="gradient">从故事到歌曲</span><br>让孩子设计声音</h1>
+      <p>这版把脚本拆到 app.js，修复第 5 步提示词框为空的问题。课堂流程是：先听示例、写故事、选音乐按钮、设计结构，最后复制到豆包或海绵音乐。</p>
+      <button class="primary" onclick="scrollToId('examples')">先听示例</button>
+      <button onclick="scrollToId('story')">开始创作</button>
+      <p class="mini">打开页面后，第 5 步应该自动出现默认提示词。</p>
+    </div>
+    <img class="img" src="assets/hero.png" alt="AI音乐小作曲家主页配图">
+  </section>
+
+  <section class="panel" id="examples">
+    <h2>课堂示例音乐链接</h2>
+    <p>课堂上可以直接点击播放前几首，每种情绪播放 10–20 秒，让孩子猜感觉。右侧插图帮助孩子理解：同一故事，音乐一变，感觉也会变。</p>
+    <div class="grid2">
+      <div class="grid4">
+        <div class="card"><a target="_blank" href="https://pixabay.com/music/search/happy%20upbeat/">开心 / 明亮</a><p>出发、朋友见面、成功结尾。</p></div>
+        <div class="card"><a target="_blank" href="https://pixabay.com/music/search/tense/">紧张</a><p>比赛前、未知危险、倒计时。</p></div>
+        <div class="card"><a target="_blank" href="https://pixabay.com/music/search/mysterious/">神秘</a><p>魔法森林、星空、秘密门。</p></div>
+        <div class="card"><a target="_blank" href="https://pixabay.com/music/search/epic%20adventure/">勇敢 / 冒险</a><p>英雄出发、训练、挑战。</p></div>
+        <div class="card"><a target="_blank" href="https://pixabay.com/music/search/calm%20piano/">温柔 / 安静</a><p>回忆、睡前、温暖结尾。</p></div>
+        <div class="card"><a target="_blank" href="https://pixabay.com/music/search/funny/">搞笑 / 调皮</a><p>恶作剧、摔跤、喜剧片段。</p></div>
+        <div class="card"><a target="_blank" href="https://pixabay.com/music/search/kids%20adventure/">儿童冒险</a><p>小学生动画、探索、闯关。</p></div>
+        <div class="card"><a target="_blank" href="https://musiclab.chromeexperiments.com/Song-Maker/">Chrome Song Maker</a><p>演示旋律和节奏怎么变。</p></div>
+      </div>
+      <div class="ctaImg">
+        <img class="img" src="assets/moods.png" alt="同一故事不同情绪的音乐示意图">
+        <div class="note">老师建议：同一个故事画面，连续播放开心、紧张、神秘三种音乐，让孩子观察：画面没变，故事感觉变了。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="story">
+    <h2>第一步：选择故事</h2>
+    <p>音乐要服务故事。先确定主角、场景和发生了什么。</p>
+    <div>
+      <button onclick="setStory('小猫登月记','一只勇敢的小猫','月亮和星空','一只小猫第一次坐火箭来到月亮，它一开始有点紧张，后来发现星空非常美丽。')">小猫登月记</button>
+      <button onclick="setStory('熊猫功夫比赛','一只会功夫的小熊猫','竹林比赛场','小熊猫努力练习，最后勇敢站上比赛舞台。')">熊猫功夫比赛</button>
+      <button onclick="setStory('小机器人找朋友','一个小机器人','未来城市雨夜','小机器人一开始孤单，后来找到了愿意陪它的朋友。')">小机器人找朋友</button>
+      <button onclick="setStory('魔法森林冒险','一只小狐狸','会发光的森林','小狐狸走进会发光的森林，听见奇怪声音，发现一扇秘密门。')">魔法森林冒险</button>
+      <button onclick="setStory('自定义故事','','','请在这里输入自己的故事。')">自定义故事</button>
+    </div>
+    <div class="grid3">
+      <div><label>作品名</label><input id="title" value="小猫登月记"></div>
+      <div><label>主角</label><input id="hero" value="一只勇敢的小猫"></div>
+      <div><label>场景</label><input id="scene" value="月亮和星空"></div>
+    </div>
+    <label>故事一句话</label>
+    <textarea id="storyText">一只小猫第一次坐火箭来到月亮，它一开始有点紧张，后来发现星空非常美丽。</textarea>
+  </section>
+
+  <section class="panel" id="type">
+    <h2>第二步：选择音乐类型与歌词</h2>
+    <p>支持纯音乐，也支持带歌词歌曲。小朋友可以自己写歌词，也可以让 AI 帮忙补歌词。</p>
+    <div class="grid2">
+      <div>
+        <div class="choice-line">
+          <label class="choice"><input type="radio" name="songType" value="bgm" checked>纯音乐 BGM</label>
+          <label class="choice"><input type="radio" name="songType" value="song">带歌词歌曲</label>
+          <label class="choice"><input type="radio" name="songType" value="lyrics_ai">AI 帮我补歌词</label>
+        </div>
+        <h3 style="margin-top:18px">歌词积木</h3>
+        <p>四句结构：我在哪里 → 我看见什么 → 我的心情 → 我想做什么。</p>
+        <div class="presetBox">
+          <div class="mini" style="margin-bottom:8px">也可以直接选择一个场景歌词模板：</div>
+          <button onclick="loadLyricsPreset('space')">太空冒险</button>
+          <button onclick="loadLyricsPreset('forest')">魔法森林</button>
+          <button onclick="loadLyricsPreset('kungfu')">功夫比赛</button>
+          <button onclick="loadLyricsPreset('robot')">机器人友情</button>
+          <button onclick="loadLyricsPreset('china')">中国风冒险</button>
+          <button onclick="loadLyricsPreset('funny')">搞笑调皮</button>
+          <button onclick="loadLyricsPreset('warm')">温柔结尾</button>
+          <button onclick="loadLyricsPreset('chorus')">主歌 + 副歌</button>
+        </div>
+        <label>我的歌词</label>
+        <textarea id="lyrics">我坐着火箭飞向月亮
+星星在窗外轻轻发光
+心里有一点紧张又期待
+我要把梦唱给宇宙听</textarea>
+        <button onclick="makeLyrics()">根据故事生成四句示例歌词</button>
+      </div>
+      <div>
+        <img class="img" src="assets/machine.png" alt="AI 生成音乐流程示意图">
+        <div class="note" style="margin-top:12px">如果要做下一堂 AI MV，建议先用“纯音乐 BGM”。如果要做班级作品展示，可以选择“带歌词歌曲”。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="music">
+    <h2>第三步：音乐按钮</h2>
+    <p>用简单按钮控制 AI 音乐的方向。右侧示意图帮助孩子理解“音乐按钮实验室”的感觉。</p>
+    <div class="grid2">
+      <div>
+        <label>音乐情绪</label>
+        <div class="choice-line">
+          <label class="choice"><input type="checkbox" name="moods" value="开心" checked>开心</label>
+          <label class="choice"><input type="checkbox" name="moods" value="紧张">紧张</label>
+          <label class="choice"><input type="checkbox" name="moods" value="神秘" checked>神秘</label>
+          <label class="choice"><input type="checkbox" name="moods" value="勇敢">勇敢</label>
+          <label class="choice"><input type="checkbox" name="moods" value="温柔">温柔</label>
+          <label class="choice"><input type="checkbox" name="moods" value="搞笑">搞笑</label>
+        </div>
+
+        <div class="grid3">
+          <div><label>速度</label><select id="tempo"><option>中等</option><option>慢</option><option>快</option><option>先慢后快</option><option>逐渐增强</option></select></div>
+          <div><label>用途</label><select id="usage"><option>AI MV 背景音乐</option><option>开场配乐</option><option>冒险配乐</option><option>比赛配乐</option><option>结尾配乐</option><option>故事配乐</option></select></div>
+          <div><label>人声</label><select id="voice"><option>自然清亮</option><option>童声感</option><option>温柔女声</option><option>明亮男声</option><option>不要人声</option></select></div>
+        </div>
+
+        <label>音乐风格</label>
+        <div class="choice-line">
+          <label class="choice"><input type="checkbox" name="style" value="儿童动画" checked>儿童动画</label>
+          <label class="choice"><input type="checkbox" name="style" value="游戏音乐">游戏音乐</label>
+          <label class="choice"><input type="checkbox" name="style" value="电影感">电影感</label>
+          <label class="choice"><input type="checkbox" name="style" value="中国风">中国风</label>
+          <label class="choice"><input type="checkbox" name="style" value="太空感" checked>太空感</label>
+          <label class="choice"><input type="checkbox" name="style" value="梦幻">梦幻</label>
+        </div>
+
+        <label>乐器 / 声音</label>
+        <div class="choice-line">
+          <label class="choice"><input type="checkbox" name="instruments" value="钢琴" checked>钢琴</label>
+          <label class="choice"><input type="checkbox" name="instruments" value="铃铛" checked>铃铛</label>
+          <label class="choice"><input type="checkbox" name="instruments" value="轻柔电子音" checked>轻柔电子音</label>
+          <label class="choice"><input type="checkbox" name="instruments" value="鼓">鼓</label>
+          <label class="choice"><input type="checkbox" name="instruments" value="竹笛">竹笛</label>
+          <label class="choice"><input type="checkbox" name="instruments" value="小提琴">小提琴</label>
+        </div>
+      </div>
+      <div><img class="img" src="assets/console.png" alt="音乐按钮实验室配图"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="structure">
+    <h2>第四步：设计音乐结构</h2>
+    <p>音乐像作文，也有开头、发展、高潮和结尾。</p>
+    <div class="grid4">
+      <div><label>0–8秒 开头</label><select id="s1"><option>轻柔、神秘，像故事刚开始</option><option>开心、明亮，像出发</option><option>安静、温柔，像睡前故事</option></select></div>
+      <div><label>8–20秒 发展</label><select id="s2"><option>节奏慢慢出现，主角开始行动</option><option>速度变快，像开始奔跑</option><option>声音变多，像进入新世界</option></select></div>
+      <div><label>20–35秒 高潮</label><select id="s3"><option>旋律变明亮，表现看到美丽星空</option><option>鼓点更明显，表现挑战成功</option><option>音乐变热闹，表现大家一起庆祝</option></select></div>
+      <div><label>35–45秒 结尾</label><select id="s4"><option>温暖收束，适合作为结尾</option><option>轻轻结束，留下想象空间</option><option>开心结束，像完成一次冒险</option></select></div>
+    </div>
+  </section>
+
+  <section class="panel" id="prompt">
+    <h2>第五步：生成提示词</h2>
+    <p>复制到豆包或海绵音乐使用。</p>
+    <div class="grid2">
+      <div>
+        <textarea class="prompt prompt-editor" id="promptBox">正在生成提示词……</textarea>
+        <div class="status" id="promptStatus">当前提示词由页面自动生成，可以直接编辑；复制时会复制编辑框里的内容。</div>
+        <button class="primary" onclick="copyPrompt()">复制当前提示词</button>
+        <button onclick="regeneratePrompt()">重新生成提示词</button>
+      </div>
+      <div>
+        <h3>作品卡</h3>
+        <div class="card" id="workCard" style="line-height:1.85">正在生成作品卡……</div>
+        <label>我为什么选择这个版本？</label>
+        <textarea id="reason">我觉得这一版最像小猫看见星空的感觉，前面有点神秘，后面变得明亮。</textarea>
+        <button onclick="copyCard()">复制作品卡</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="footerBox">
+      <div>
+        <h2>下一堂课预告：AI MV 小导演</h2>
+        <p>今天做出的音乐，会变成下一堂课的 MV 配乐。你可以把故事、提示词和音乐版本一起保存下来，下一节课直接接上 AI 图片和 AI 视频。</p>
+        <div class="note">请保存三样东西：1）故事一句话；2）最终音乐提示词；3）你选中的音乐版本和理由。</div>
+      </div>
+      <img class="img" src="assets/handoff.png" alt="AI音乐到AI MV的衔接图">
+    </div>
+  </section>
+
+</div>
+<div class="toast" id="toast">已复制</div>
+<script src="lyrics-presets.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
