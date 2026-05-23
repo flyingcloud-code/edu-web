@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 小小导演｜课堂版视频提示词生成器</title>
+  <title>AI 小小导演｜课堂版视频提示词生成器 0.2</title>
   <style>
     :root {
       --bg: #fff7e8;
@@ -49,9 +49,21 @@
     body.student-mode .asset-prompts { display: none; }
 
     .app {
-      max-width: 1480px;
+      max-width: 1280px;
       margin: 0 auto;
       padding: 22px 22px 48px;
+    }
+
+    body.widescreen .app {
+      max-width: min(1600px, 100vw);
+      padding: 18px 28px 42px;
+    }
+
+    body.widescreen .panel,
+    body.widescreen .hero-card,
+    body.widescreen .teacher-card,
+    body.widescreen .poster-card {
+      border-radius: 22px;
     }
 
     .topbar {
@@ -191,10 +203,14 @@
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(320px, .75fr);
+      grid-template-columns: 1fr;
       gap: 18px;
       align-items: stretch;
       margin-bottom: 18px;
+    }
+
+    body.widescreen .hero {
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, .75fr);
     }
 
     .hero-card {
@@ -275,10 +291,16 @@
     }
 
     .main {
-      display: grid;
-      grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
-      gap: 18px;
-      align-items: start;
+      display: block;
+    }
+
+    .left-col,
+    .right-col {
+      display: block;
+    }
+
+    body.widescreen .main {
+      display: block;
     }
 
     .panel {
@@ -584,6 +606,58 @@
     .scene-card strong { font-size: var(--text); color: #2f2f3a; }
     .scene-card span { color: #4b5563; font-size: 13px; line-height: 1.4; max-width: 86%; }
 
+    .scene-card.custom-card {
+      background: linear-gradient(145deg, #fffdf8, #eef7ff);
+      border: 2px dashed #7db9ff;
+    }
+
+    .custom-edit-card {
+      margin-top: 10px;
+      border: 1px dashed #f0c46c;
+      border-radius: 18px;
+      background: #fffaf0;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .custom-scene-editor {
+      margin: -4px 0 18px;
+      border: 2px dashed #7db9ff;
+      border-radius: 20px;
+      background: #f7fbff;
+      padding: 14px;
+    }
+
+    .custom-scene-editor-title {
+      font-weight: 1000;
+      color: #1f4f7a;
+      margin-bottom: 10px;
+      font-size: var(--text);
+    }
+
+    .custom-scene-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .custom-edit-card input {
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: calc(var(--text) - 1px);
+    }
+
+    .custom-edit-card button {
+      padding: 10px 13px;
+      border-radius: 14px;
+      font-size: calc(var(--text) - 2px);
+      white-space: nowrap;
+    }
+
     .form-row { margin-bottom: 17px; }
 
     .pill-group,
@@ -815,7 +889,7 @@
     .tool-card strong { display:block; color:#7c3c08; margin-bottom:4px; }
     .tool-card span { display:block; color:#6b7280; font-size:13px; line-height:1.45; }
 
-    .sticky-result { position: sticky; top: 86px; z-index: 5; }
+    .sticky-result { position: static; top: auto; z-index: 5; }
 
     .output-box {
       background: #1f2937;
@@ -1186,14 +1260,14 @@
     }
 
     @media (max-width: 1100px) {
-      .hero, .main, .teacher-tools { grid-template-columns: 1fr; }
+      .hero, .teacher-tools { grid-template-columns: 1fr; }
       .steps { grid-template-columns: repeat(2, 1fr); }
       .role-grid { grid-template-columns: repeat(2, 1fr); }
       .product-nav { grid-template-columns: repeat(2, 1fr); }
       .quality-grid, .score-grid { grid-template-columns: repeat(2, 1fr); }
       .tool-grid { grid-template-columns: 1fr; }
       .gallery-grid { grid-template-columns: repeat(2, 1fr); }
-      .sticky-result { position: static; }
+      .custom-scene-grid { grid-template-columns: 1fr; }
       .topbar { position: static; }
     }
 
@@ -1237,6 +1311,7 @@
       </div>
       <div class="topbar-right">
         <button class="secondary" id="presentationBtn">大屏模式</button>
+        <button class="secondary" id="widescreenBtn">16:9 版式</button>
         <button class="secondary" id="printBtn">打印分镜卡</button>
         <button class="success" id="saveRecordBtn">保存小组作品</button>
         <button class="secondary" id="exportCsvBtn">导出记录 CSV</button>
@@ -1297,14 +1372,22 @@
           <h2>③ 选择场景</h2>
           <p class="section-note">场景卡片是课堂预览图。后续可以把背景换成你生成的真实角色场景图。</p>
           <div class="scene-grid" id="sceneGrid"></div>
+          <div class="custom-scene-editor">
+            <div class="custom-scene-editor-title">自定义场景</div>
+            <div class="custom-scene-grid">
+              <input id="customSceneName" placeholder="场景名称：例如 下雨的操场" />
+              <input id="customSceneDesc" placeholder="场景元素：例如 雨伞、水坑、校门、早晨阳光" />
+              <button class="secondary" id="applyCustomSceneBtn">使用自定义场景</button>
+            </div>
+          </div>
         </section>
 
         <section class="panel">
           <h2>④ 选择任务、情绪和镜头</h2>
-          <div class="form-row"><label for="taskSelect">任务</label><select id="taskSelect"></select></div>
-          <div class="form-row"><label>情绪变化</label><div class="pill-group" id="emotionGroup"></div></div>
-          <div class="form-row"><label>镜头</label><div class="pill-group" id="shotGroup"></div></div>
-          <div class="form-row"><label>视频风格</label><div class="pill-group" id="styleGroup"></div></div>
+          <div class="form-row"><label for="taskSelect">任务</label><select id="taskSelect"></select><div class="custom-edit-card"><input id="customTaskInput" placeholder="自定义任务，例如：把发光种子种进花盆" /><button class="secondary" id="applyCustomTaskBtn">使用自定义任务</button></div></div>
+          <div class="form-row"><label>情绪变化</label><div class="pill-group" id="emotionGroup"></div><div class="custom-edit-card"><input id="customEmotionInput" placeholder="自定义情绪，例如：担心 → 勇敢" /><button class="secondary" id="applyCustomEmotionBtn">使用自定义情绪</button></div></div>
+          <div class="form-row"><label>镜头</label><div class="pill-group" id="shotGroup"></div><div class="custom-edit-card"><input id="customShotInput" placeholder="自定义镜头，例如：镜头从花朵慢慢推到角色脸上" /><button class="secondary" id="applyCustomShotBtn">使用自定义镜头</button></div></div>
+          <div class="form-row"><label>视频风格</label><div class="pill-group" id="styleGroup"></div><div class="custom-edit-card"><input id="customStyleInput" placeholder="自定义风格，例如：清晨阳光下的温暖绘本动画" /><button class="secondary" id="applyCustomStyleBtn">使用自定义风格</button></div></div>
         </section>
       </div>
 
@@ -1354,6 +1437,7 @@
           <label class="teacher-only">选择目标工具</label>
           <div class="tool-grid teacher-only" id="toolGrid"></div>
           <div class="output-box" id="outputBox">选择角色并填写分镜后，点击“生成完整视频提示词”。</div>
+          <div class="btn-row" style="margin-top:12px;"><button class="primary" id="copyBtnResult">复制提示词</button><button class="secondary" id="generateBtnResult">重新生成</button></div>
           <div class="quality-grid" id="qualityGrid"></div>
         </section>
       </div>
@@ -1559,6 +1643,7 @@
     var currentTool = "doubao";
     var currentRoleKey = "fox";
     var currentSceneIndex = 0;
+    var currentTaskValue = roles.fox.tasks[0];
     var currentEmotion = roles.fox.emotions[0];
     var currentShot = roles.fox.shots[0];
     var currentStyle = styles[0];
@@ -1570,7 +1655,13 @@
     var roleGrid = $("roleGrid"), rolePreview = $("rolePreview"), roleInfo = $("roleInfo"), sceneGrid = $("sceneGrid"), taskSelect = $("taskSelect"), emotionGroup = $("emotionGroup"), shotGroup = $("shotGroup"), styleGroup = $("styleGroup"), toolGrid = $("toolGrid"), productNav = $("productNav"), storyHelp = $("storyHelp"), storyHintText = $("storyHintText"), choiceSummary = $("choiceSummary"), gradeHint = $("gradeHint"), outputBox = $("outputBox"), recordBody = $("recordBody"), qualityGrid = $("qualityGrid"), posterPreview = $("posterPreview"), galleryGrid = $("galleryGrid"), galleryFilter = $("galleryFilter");
 
     function getRole() { return roles[currentRoleKey]; }
-    function getScene() { return getRole().scenes[currentSceneIndex]; }
+    function getScene() {
+      var role = getRole();
+      if (currentSceneIndex === -1) {
+        return role.customScene || { name: "自定义场景", desc: "孩子自己设计的场景", emoji: "🎨", colors: ["#fffdf8", "#eef7ff"] };
+      }
+      return role.scenes[currentSceneIndex];
+    }
 
     function getRoleImage(roleLike) {
       return roleLike.avatarImage || roleLike.image || roleLike.roleImage || "";
@@ -1584,8 +1675,8 @@
       var img = getRoleImage(roleLike);
       var emoji = roleLike.emoji || roleLike.roleEmoji || "🎬";
       var name = roleLike.name || roleLike.roleName || "角色";
-      var c1 = roleLike.colors?.[0] || "#fff0d2";
-      var c2 = roleLike.colors?.[1] || "#dbeafe";
+      var c1 = roleLike.colors && roleLike.colors[0] ? roleLike.colors[0] : "#fff0d2";
+      var c2 = roleLike.colors && roleLike.colors[1] ? roleLike.colors[1] : "#dbeafe";
       if (!img) {
         return `<div class="${className}" style="--c1:${c1};--c2:${c2};">${emoji}</div>`;
       }
@@ -1597,7 +1688,7 @@
       Object.entries(roles).forEach(([key, role]) => {
         var card = document.createElement("div");
         card.className = `role-card ${key === currentRoleKey ? "active" : ""}`;
-        card.onclick = () => { currentRoleKey = key; currentSceneIndex = 0; currentEmotion = role.emotions[0]; currentShot = role.shots[0]; draftIndex = 0; renderAll(); autoDraftStoryboard(false); };
+        card.onclick = () => { currentRoleKey = key; currentSceneIndex = 0; currentTaskValue = role.tasks[0]; currentEmotion = role.emotions[0]; currentShot = role.shots[0]; draftIndex = 0; renderAll(); autoDraftStoryboard(false); };
         card.innerHTML = `${characterVisual(role, "avatar-art")}<div><div class="role-title">${role.name}</div><div class="role-desc">${role.desc}</div><div class="role-mini-tags">${role.tags.map(t => `<span class="mini-tag">${t}</span>`).join("")}</div><div class="role-card-actions"><button class="sheet-link-btn" data-sheet-role="${key}">查看角色设定</button></div></div>`;
         var sheetBtn = card.querySelector(".sheet-link-btn");
         sheetBtn.onclick = (event) => { event.stopPropagation(); openCharacterSheet(key); };
@@ -1621,29 +1712,96 @@
     function renderScenes() {
       var role = getRole();
       sceneGrid.innerHTML = "";
-      role.scenes.forEach((scene, index) => {
+
+      role.scenes.forEach(function(scene, index) {
         var card = document.createElement("div");
-        card.className = `scene-card ${index === currentSceneIndex ? "active" : ""}`;
+        card.className = "scene-card " + (index === currentSceneIndex ? "active" : "");
         card.style.setProperty("--s1", scene.colors[0]);
         card.style.setProperty("--s2", scene.colors[1]);
         card.dataset.emoji = scene.emoji;
-        card.onclick = () => { currentSceneIndex = index; draftIndex = 0; renderScenes(); updateStoryHint(); autoDraftStoryboard(false); generatePrompt(false); };
-        card.innerHTML = `<strong>${scene.name}</strong><span>${scene.desc}</span>`;
+        card.onclick = function() {
+          currentSceneIndex = index;
+          draftIndex = 0;
+          renderScenes();
+          updateStoryHint();
+          autoDraftStoryboard(false);
+          generatePrompt(false);
+        };
+        card.innerHTML = "<strong>" + escapeHtml(scene.name) + "</strong><span>" + escapeHtml(scene.desc) + "</span>";
         sceneGrid.appendChild(card);
       });
+
     }
 
+    function addIfMissing(list, value) { var arr = list.slice(); if (value && !arr.includes(value)) arr.push(value); return arr; }
     function fillSelect(select, items) { select.innerHTML = ""; items.forEach(item => { var opt = document.createElement("option"); opt.value = item; opt.textContent = item; select.appendChild(opt); }); }
     function renderPills(container, items, activeValue, onPick) { container.innerHTML = ""; items.forEach(item => { var pill = document.createElement("div"); pill.className = `pill ${item === activeValue ? "active" : ""}`; pill.textContent = item; pill.onclick = () => onPick(item); container.appendChild(pill); }); }
 
     function renderControls() {
       var role = getRole();
-      fillSelect(taskSelect, role.tasks);
-      renderPills(emotionGroup, role.emotions, currentEmotion, (item) => { currentEmotion = item; renderControls(); autoDraftStoryboard(false); });
-      renderPills(shotGroup, role.shots, currentShot, (item) => { currentShot = item; renderControls(); autoDraftStoryboard(false); });
-      renderPills(styleGroup, styles, currentStyle, (item) => { currentStyle = item; renderControls(); generatePrompt(false); });
+      fillSelect(taskSelect, addIfMissing(role.tasks, currentTaskValue));
+      taskSelect.value = currentTaskValue || role.tasks[0];
+      renderPills(emotionGroup, addIfMissing(role.emotions, currentEmotion), currentEmotion, (item) => { currentEmotion = item; renderControls(); autoDraftStoryboard(false); });
+      renderPills(shotGroup, addIfMissing(role.shots, currentShot), currentShot, (item) => { currentShot = item; renderControls(); autoDraftStoryboard(false); });
+      renderPills(styleGroup, addIfMissing(styles, currentStyle), currentStyle, (item) => { currentStyle = item; renderControls(); generatePrompt(false); });
       renderTools();
       updateStoryHint();
+    }
+
+    function applyCustomScene() {
+      var role = getRole();
+      var nameInput = $("customSceneName");
+      var descInput = $("customSceneDesc");
+      var existing = role.customScene || { name: "", desc: "" };
+      var name = nameInput ? nameInput.value.trim() : "";
+      var desc = descInput ? descInput.value.trim() : "";
+
+      if (!name && existing.name && nameInput) name = existing.name;
+      if (!desc && existing.desc && descInput) desc = existing.desc;
+
+      if (!name) {
+        if (nameInput) nameInput.focus();
+        alert("请先填写自定义场景名称，例如：下雨的操场、云朵城堡、海边小舞台。");
+        return;
+      }
+      if (!desc) desc = "孩子自己设计的场景";
+
+      role.customScene = { name: name, desc: desc, emoji: "✏️", colors: ["#fffdf8", "#eef7ff"] };
+      currentSceneIndex = -1;
+      if (nameInput) nameInput.value = name;
+      if (descInput) descInput.value = desc;
+      renderScenes();
+      updateStoryHint();
+      autoDraftStoryboard(false);
+      generatePrompt(false);
+    }
+
+    function syncCustomSceneInputs() {
+      var role = getRole();
+      var nameInput = $("customSceneName");
+      var descInput = $("customSceneDesc");
+      if (!nameInput || !descInput) return;
+      if (role.customScene) {
+        nameInput.value = role.customScene.name || "";
+        descInput.value = role.customScene.desc || "";
+      } else {
+        nameInput.value = "";
+        descInput.value = "";
+      }
+    }
+
+    function applyCustomChoice(type) {
+      var inputId = type === "task" ? "customTaskInput" : type === "emotion" ? "customEmotionInput" : type === "shot" ? "customShotInput" : "customStyleInput";
+      var value = $(inputId).value.trim();
+      if (!value) return;
+      if (type === "task") currentTaskValue = value;
+      if (type === "emotion") currentEmotion = value;
+      if (type === "shot") currentShot = value;
+      if (type === "style") currentStyle = value;
+      renderControls();
+      updateStoryHint();
+      autoDraftStoryboard(false);
+      generatePrompt(false);
     }
 
     function renderTools() {
@@ -1666,7 +1824,7 @@
     }
 
     function buildChipSentence(target, chipText) {
-      var role = getRole(), scene = getScene(), task = taskSelect.value || role.tasks[0];
+      var role = getRole(), scene = getScene(), task = currentTaskValue || taskSelect.value || role.tasks[0];
       var emotionParts = currentEmotion.split("→").map(s => s.trim());
       var fromEmotion = emotionParts[0] || "好奇";
       var toEmotion = emotionParts[1] || "开心";
@@ -1686,7 +1844,7 @@
     }
 
     function updateStoryHint() {
-      var role = getRole(), scene = getScene(), task = taskSelect.value || role.tasks[0];
+      var role = getRole(), scene = getScene(), task = currentTaskValue || taskSelect.value || role.tasks[0];
       storyHintText.textContent = `当前选择已经够了。现在只做导演整理：第 1 镜头交代“${role.name}在哪里”，第 2 镜头交代“怎么${task}”，第 3 镜头交代“最后有什么变化”。`;
       if (choiceSummary) {
         choiceSummary.innerHTML = [
@@ -1700,7 +1858,7 @@
     }
 
     function autoDraftStoryboard(showToast = true) {
-      var role = getRole(), scene = getScene(), task = taskSelect.value || role.tasks[0];
+      var role = getRole(), scene = getScene(), task = currentTaskValue || taskSelect.value || role.tasks[0];
       var emotionParts = currentEmotion.split("→").map(s => s.trim());
       var fromEmotion = emotionParts[0] || "好奇";
       var toEmotion = emotionParts[1] || "开心";
@@ -1730,33 +1888,31 @@
 
     function getFormData() {
       var role = getRole(), scene = getScene();
-      return { className: $("className").value.trim(), groupName: $("groupName").value.trim(), studentNames: $("studentNames").value.trim(), roleName: role.name, roleEmoji: role.emoji, roleImage: role.avatarImage || role.image || "", roleSheetImage: role.sheetImage || "", sceneName: scene.name, task: taskSelect.value, emotion: currentEmotion, shot: currentShot, style: currentStyle, grade: currentGrade === "simple" ? "三四年级简单版" : "五六年级进阶版", frame1: $("frame1").value.trim(), frame2: $("frame2").value.trim(), frame3: $("frame3").value.trim(), extra: $("extraReq").value.trim(), teacherComment: $("teacherComment")?.value.trim() || "", scores: getScores() };
+      return { className: $("className").value.trim(), groupName: $("groupName").value.trim(), studentNames: $("studentNames").value.trim(), roleName: role.name, roleEmoji: role.emoji, roleImage: role.avatarImage || role.image || "", roleSheetImage: role.sheetImage || "", sceneName: scene.name, task: currentTaskValue || taskSelect.value, emotion: currentEmotion, shot: currentShot, style: currentStyle, grade: currentGrade === "simple" ? "三四年级简单版" : "五六年级进阶版", frame1: $("frame1").value.trim(), frame2: $("frame2").value.trim(), frame3: $("frame3").value.trim(), extra: $("extraReq").value.trim(), teacherComment: ($("teacherComment") ? $("teacherComment").value.trim() : ""), scores: getScores() };
     }
 
-    function getScores() { return { role: $("scoreRole")?.value || "⭐⭐⭐", action: $("scoreAction")?.value || "⭐⭐⭐", change: $("scoreChange")?.value || "⭐⭐⭐", camera: $("scoreCamera")?.value || "⭐⭐⭐" }; }
+    function getScores() {
+      return {
+        role: $("scoreRole") ? $("scoreRole").value : "⭐⭐⭐",
+        action: $("scoreAction") ? $("scoreAction").value : "⭐⭐⭐",
+        change: $("scoreChange") ? $("scoreChange").value : "⭐⭐⭐",
+        camera: $("scoreCamera") ? $("scoreCamera").value : "⭐⭐⭐"
+      };
+    }
 
     function buildPrompt() {
       var data = getFormData();
-      var toolSuffix = targetTools[currentTool]?.suffix || "";
-      var extra = data.extra || "动作自然，节奏清楚，角色不要变形，背景不要突然变化，不要文字。";
-      var length = currentGrade === "simple" ? "8 秒" : "8–12 秒";
-      var gradeExtra = currentGrade === "simple" ? "画面要简单清楚，只突出一个主要动作。" : "画面要有开始、中间和结尾的感觉，镜头运动自然，情绪变化要明显。";
-      return `请生成一个 ${length} 的 ${data.style} 视频。
-
-主角：${data.roleName}。请保持角色外观、颜色和关键道具一致。
-场景：${data.sceneName}。
-任务：${data.task}。
-
-三格分镜：
-1. 开始：${data.frame1 || "（请填写第 1 格）"}
-2. 动作：${data.frame2 || "（请填写第 2 格）"}
-3. 变化：${data.frame3 || "（请填写第 3 格）"}
-
-情绪变化：${data.emotion}。
-镜头：${data.shot}。
-
-要求：${gradeExtra}${extra}
-目标工具优化：${toolSuffix}`;
+      var length = currentGrade === "simple" ? "8秒" : "8-12秒";
+      var baseRules = "一个主角，一个主要动作；保持角色外观、颜色和关键道具一致；无文字；背景不突变；角色不变形。";
+      var extra = data.extra ? "补充要求：" + data.extra + String.fromCharCode(10) : "";
+      var toolSuffix = targetTools[currentTool] && targetTools[currentTool].suffix ? targetTools[currentTool].suffix : "";
+      var toolLine = toolSuffix ? "工具优化：" + toolSuffix : "";
+      return `生成${length}${data.style}视频。
+主角：${data.roleName}。场景：${data.sceneName}。任务：${data.task}。
+分镜：1开始：${data.frame1 || "请填写第1镜头"}；2动作：${data.frame2 || "请填写第2镜头"}；3变化：${data.frame3 || "请填写第3镜头"}。
+情绪：${data.emotion}。镜头：${data.shot}。
+要求：${baseRules}
+${extra}${toolLine}`.trim();
     }
 
     function generatePrompt(showToast = true) { outputBox.textContent = buildPrompt(); if (showToast) flashButton("generateBtn", "已生成 ✓"); renderPrintSheet(); renderQualityCheck(); updateProgress(); renderPosterPreview(); }
@@ -1906,12 +2062,12 @@ ${escapeHtml(data.frame3 || "")}</div></div><div class="print-title" style="font
       var r = records.find(item => item.id === id); if (!r) return;
       var roleKey = Object.keys(roles).find(k => roles[k].name === r.roleName) || "fox";
       currentRoleKey = roleKey; currentSceneIndex = roles[roleKey].scenes.findIndex(s => s.name === r.sceneName); if (currentSceneIndex < 0) currentSceneIndex = 0;
-      currentEmotion = r.emotion; currentShot = r.shot; currentStyle = r.style; currentTool = r.tool || "doubao"; currentGrade = r.grade.includes("进阶") ? "advanced" : "simple";
+      currentTaskValue = r.task || roles[roleKey].tasks[0]; currentEmotion = r.emotion; currentShot = r.shot; currentStyle = r.style; currentTool = r.tool || "doubao"; currentGrade = r.grade.includes("进阶") ? "advanced" : "simple";
       $("className").value = r.className || ""; $("groupName").value = r.groupName || ""; $("studentNames").value = r.studentNames || "";
       $("frame1").value = r.frame1 || ""; $("frame2").value = r.frame2 || ""; $("frame3").value = r.frame3 || ""; $("extraReq").value = r.extra || ""; $("teacherComment").value = r.teacherComment || "";
       document.querySelectorAll(".grade-btn").forEach(b => b.classList.toggle("active", b.dataset.grade === currentGrade));
       gradeHint.textContent = currentGrade === "simple" ? "三四年级：每个镜头只写一句话。第 1 镜头写“在哪里”，第 2 镜头写“怎么做”，第 3 镜头写“有什么变化”。" : "五六年级：还是 3 个镜头，但要加上初始情绪、镜头运动、动作速度和结果变化。";
-      renderAll(); taskSelect.value = r.task; generatePrompt(false); window.scrollTo({ top: 0, behavior: "smooth" });
+      renderAll(); taskSelect.value = currentTaskValue; generatePrompt(false); window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function posterFromRecord(id) { var r = records.find(item => item.id === id); if (!r) return; renderPosterPreview(r); document.querySelector(".poster-card").scrollIntoView({ behavior: "smooth" }); }
@@ -1955,12 +2111,12 @@ ${escapeHtml(data.frame3 || "")}</div></div><div class="print-title" style="font
     function escapeXml(text) { return String(text || "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&apos;",'"':"&quot;"}[c])); }
     function sanitizeFilename(text) { return String(text || "poster").replace(/[\/:*?"<>|]/g, "_").slice(0, 50); }
 
-    function renderAll() { renderRoles(); renderRolePreview(); renderScenes(); renderControls(); renderStoryHelp(); updateStoryHint(); generatePrompt(false); renderPosterPreview(); }
+    function renderAll() { renderRoles(); renderRolePreview(); renderScenes(); syncCustomSceneInputs(); renderControls(); renderStoryHelp(); updateStoryHint(); generatePrompt(false); renderPosterPreview(); }
 
     document.querySelectorAll(".mode-pill").forEach(btn => btn.addEventListener("click", () => { document.querySelectorAll(".mode-pill").forEach(item => item.classList.remove("active")); btn.classList.add("active"); document.body.classList.toggle("student-mode", btn.dataset.mode === "student"); }));
     document.querySelectorAll(".grade-btn").forEach(btn => btn.addEventListener("click", () => { document.querySelectorAll(".grade-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); currentGrade = btn.dataset.grade; gradeHint.textContent = currentGrade === "simple" ? "三四年级：每个镜头只写一句话。第 1 镜头写“在哪里”，第 2 镜头写“怎么做”，第 3 镜头写“有什么变化”。" : "五六年级：还是 3 个镜头，但要加上初始情绪、镜头运动、动作速度和结果变化。"; autoDraftStoryboard(false); }));
     ["frame1", "frame2", "frame3", "extraReq", "className", "groupName", "studentNames", "teacherComment", "scoreRole", "scoreAction", "scoreChange", "scoreCamera"].forEach(id => { var el = $(id); if (el) el.addEventListener("input", () => generatePrompt(false)); if (el && el.tagName === "SELECT") el.addEventListener("change", () => generatePrompt(false)); });
-    taskSelect.addEventListener("change", () => { updateStoryHint(); autoDraftStoryboard(false); });
+    taskSelect.addEventListener("change", () => { currentTaskValue = taskSelect.value; updateStoryHint(); autoDraftStoryboard(false); });
     galleryFilter.addEventListener("change", renderGallery);
     $("autoDraftBtn").onclick = () => autoDraftStoryboard(true);
     $("nextDraftBtn").onclick = nextDraft;
@@ -1971,8 +2127,16 @@ ${escapeHtml(data.frame3 || "")}</div></div><div class="print-title" style="font
     $("copyCommentBtn").onclick = copyComment;
     $("generateBtn").onclick = () => generatePrompt(true);
     $("copyBtn").onclick = copyPrompt;
+    $("copyBtnResult").onclick = copyPrompt;
+    $("generateBtnResult").onclick = () => generatePrompt(true);
+    $("applyCustomSceneBtn").onclick = applyCustomScene;
+    $("applyCustomTaskBtn").onclick = () => applyCustomChoice("task");
+    $("applyCustomEmotionBtn").onclick = () => applyCustomChoice("emotion");
+    $("applyCustomShotBtn").onclick = () => applyCustomChoice("shot");
+    $("applyCustomStyleBtn").onclick = () => applyCustomChoice("style");
     $("resetBtn").onclick = resetFrames;
     $("presentationBtn").onclick = () => { document.body.classList.toggle("presentation"); $("presentationBtn").textContent = document.body.classList.contains("presentation") ? "退出大屏" : "大屏模式"; };
+    $("widescreenBtn").onclick = () => { document.body.classList.toggle("widescreen"); $("widescreenBtn").textContent = document.body.classList.contains("widescreen") ? "退出 16:9" : "16:9 版式"; };
     $("printBtn").onclick = () => { renderPrintSheet(); window.print(); };
     $("saveRecordBtn").onclick = saveRecord;
     $("exportCsvBtn").onclick = exportCsv;
@@ -1990,3 +2154,4 @@ ${escapeHtml(data.frame3 || "")}</div></div><div class="print-title" style="font
   </script>
 </body>
 </html>
+

@@ -648,6 +648,81 @@
       background: linear-gradient(135deg, #60a5fa, #8b5cf6);
       box-shadow: 0 4px 10px rgba(59,130,246,.2);
     }
+    .token-input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+    .token-input {
+      width: 100%;
+      border: 2px solid #dbeafe;
+      border-radius: 20px;
+      background: #fff;
+      padding: 13px 15px;
+      color: #0f172a;
+      font-size: 17px;
+      font-weight: 900;
+      outline: none;
+      box-shadow: inset 0 1px 8px rgba(15,23,42,.05);
+    }
+    .token-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px #eff6ff; }
+    .token-sample-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+    .token-sample-btn {
+      border-radius: 15px;
+      background: #f8fafc;
+      color: #475569;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 1000;
+      box-shadow: inset 0 1px 8px rgba(15,23,42,.05);
+      transition: .16s ease;
+    }
+    .token-sample-btn:hover { background: #dbeafe; color: #1d4ed8; transform: translateY(-2px); }
+    .token-table {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .token-row {
+      display: grid;
+      grid-template-columns: minmax(88px, .8fr) 92px minmax(78px, .6fr) 1.2fr;
+      gap: 10px;
+      align-items: center;
+      border-radius: 20px;
+      background: #fff;
+      padding: 11px 12px;
+      box-shadow: var(--soft-shadow);
+      font-weight: 900;
+    }
+    .token-row.header {
+      background: #eff6ff;
+      color: #1e40af;
+      box-shadow: inset 0 1px 8px rgba(15,23,42,.04);
+      font-size: 13px;
+      font-weight: 1000;
+    }
+    .token-text-cell {
+      border-radius: 14px;
+      background: #f8fafc;
+      padding: 8px 10px;
+      color: #0f172a;
+      font-weight: 1000;
+      word-break: break-word;
+    }
+    .token-id-cell {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #6d28d9;
+      font-weight: 1000;
+    }
+    .token-kind-cell { color: #1d4ed8; }
+    .token-note-cell { color: #64748b; font-size: 13px; line-height: 1.35; }
     .token-why-card {
       margin-top: 18px;
       border-radius: 28px;
@@ -929,6 +1004,88 @@
     .dialog-question { margin-top: 8px; color: #0f172a; font-size: 17px; font-weight: 1000; }
     .dialog-answer { margin-top: 6px; color: #475569; font-size: 15px; font-weight: 850; line-height: 1.45; }
     .dialog-answer strong { color: #16a34a; }
+    .dialog-card-main {
+      width: 100%;
+      display: block;
+      text-align: left;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    .dialog-card.custom-card { background: linear-gradient(135deg, #fff7ed, #eff6ff); }
+    .dialog-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .custom-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      background: #ffedd5;
+      color: #c2410c;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 1000;
+    }
+    .dialog-delete-btn, .bucket-remove-btn {
+      border-radius: 13px;
+      background: #fee2e2;
+      color: #b91c1c;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 1000;
+      box-shadow: inset 0 1px 8px rgba(185,28,28,.08);
+    }
+    .dialog-delete-btn:hover, .bucket-remove-btn:hover { transform: translateY(-1px); filter: brightness(.98); }
+    .bucket-remove-btn { float: right; margin-left: 8px; }
+    .custom-dialog-box {
+      margin-top: 16px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, #fff7ed, #eff6ff);
+      padding: 16px;
+      box-shadow: var(--soft-shadow);
+    }
+    .custom-dialog-box h3 {
+      margin: 0;
+      color: #1d4ed8;
+      font-size: 20px;
+      font-weight: 1000;
+    }
+    .custom-dialog-box p {
+      margin: 6px 0 0;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: 850;
+    }
+    .custom-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 12px;
+    }
+    .custom-form-grid input, .custom-form-grid select {
+      min-width: 0;
+      border: 2px solid #dbeafe;
+      border-radius: 16px;
+      background: #fff;
+      padding: 10px 12px;
+      color: #0f172a;
+      font-size: 14px;
+      font-weight: 900;
+      outline: none;
+    }
+    .custom-form-grid input:focus, .custom-form-grid select:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px #eff6ff; }
+    .custom-form-grid .wide { grid-column: 1 / -1; }
+    .custom-status {
+      min-height: 18px;
+      margin-top: 9px;
+      color: #15803d;
+      font-size: 13px;
+      font-weight: 1000;
+    }
     .dialog-selected-list { display: grid; gap: 10px; }
     .mini-dialog-card {
       border-radius: 20px;
@@ -1402,9 +1559,18 @@
 
         <div class="brain-grid">
           <div class="card">
-            <h2 class="blue">1. 词块入口</h2>
-            <p>AI 不能直接计算一整句话，所以它会先把文字切成“词块”。词块就像文字积木：不会太大，也不会太碎。</p>
+            <h2 class="blue">1. 词块（token）入口</h2>
+            <p>AI 不能直接计算一整句话，所以要先把文字切成 token。每个 token 会变成一个编号，机器再用编号去计算。</p>
             <div class="llm-sentence-panel">
+              <div class="token-input-row">
+                <input class="token-input" id="token-input" type="text" maxlength="80" placeholder="输入一句话，比如：小猫喜欢吃鱼。" />
+                <button class="primary-btn" id="tokenize-btn" type="button" style="font-size:16px;padding:12px 16px;border-radius:18px">切成 token</button>
+              </div>
+              <div class="token-sample-row">
+                <button class="token-sample-btn" data-token-sample="小猫喜欢吃鱼。" type="button">小猫喜欢吃鱼。</button>
+                <button class="token-sample-btn" data-token-sample="下雨出门要带雨伞。" type="button">下雨出门要带雨伞。</button>
+                <button class="token-sample-btn" data-token-sample="I love AI robots!" type="button">I love AI robots!</button>
+              </div>
               <div class="llm-sentence" id="token-sentence-view"></div>
               <div id="vector-card-view" style="margin-top:16px"></div>
             </div>
@@ -1513,8 +1679,35 @@
 
         <div class="dialog-main-grid">
           <div class="card">
-            <h2 class="blue">1. 选择对话卡</h2>
-            <p>选几张问题和回答，教小机器人怎么说话。</p>
+            <h2 class="blue">1. 选择 / 创建对话卡</h2>
+            <p>选几张问题和回答，教小机器人怎么说话。也可以自己做一张新卡。</p>
+            <div class="custom-dialog-box">
+              <h3>➕ 做一张自己的对话卡</h3>
+              <p>写一个问题和回答，保存后会自动放进训练机。</p>
+              <div class="custom-form-grid">
+                <input id="custom-dialog-question" class="wide" type="text" maxlength="36" placeholder="问题：比如 你最喜欢什么动物？" />
+                <input id="custom-dialog-answer" class="wide" type="text" maxlength="60" placeholder="回答：比如 我 最 喜欢 恐龙 。" />
+                <select id="custom-dialog-group">
+                  <option value="自定义">自定义</option>
+                  <option value="问候">问候</option>
+                  <option value="喜好">喜好</option>
+                  <option value="生活">生活</option>
+                  <option value="知识">知识</option>
+                </select>
+                <select id="custom-dialog-icon">
+                  <option value="⭐">⭐ 星星</option>
+                  <option value="🤖">🤖 机器人</option>
+                  <option value="🐱">🐱 小猫</option>
+                  <option value="🐶">🐶 小狗</option>
+                  <option value="🦖">🦖 恐龙</option>
+                  <option value="🍎">🍎 苹果</option>
+                  <option value="☔">☔ 雨伞</option>
+                  <option value="🌙">🌙 月亮</option>
+                </select>
+                <button id="create-custom-dialog-btn" class="primary-btn wide" type="button" style="font-size:16px;padding:11px 14px;border-radius:18px">保存并加入训练机</button>
+              </div>
+              <div id="custom-dialog-status" class="custom-status"></div>
+            </div>
             <div class="dialog-card-grid" id="game-card-bank"></div>
           </div>
 
@@ -1657,12 +1850,14 @@
       gameCreativity: 42,
       brainExample: "cat-eat",
       tokenMode: "token",
+      tokenInput: "小猫喜欢吃鱼。",
       brainLayerStep: 0,
       brainModelSize: 2,
       chatQuestionId: null,
       generatedAnswerTokens: [],
       generationSteps: [],
       currentSourceCardId: null,
+      customDialogMessage: "",
       timers: [],
     };
 
@@ -1673,9 +1868,11 @@
     function setLater(fn, ms) { const t = setTimeout(fn, ms); state.timers.push(t); }
 
     function cardHTML(card, selected = false, draggable = false, source = "") {
-      return `<button class="data-card ${card.cls} ${selected ? "selected" : ""}" data-card-id="${card.id}" ${draggable ? "draggable='true'" : ""} ${source ? `data-source='${source}'` : ""}>
-        <div class="emoji">${card.emoji}</div><div class="label">${card.label}</div>
-      </button>`;
+      const draggableAttr = draggable ? " draggable='true'" : "";
+      const sourceAttr = source ? " data-source='" + source + "'" : "";
+      return '<button class="data-card ' + card.cls + ' ' + (selected ? 'selected' : '') + '" data-card-id="' + card.id + '"' + draggableAttr + sourceAttr + '>' +
+        '<div class="emoji">' + card.emoji + '</div><div class="label">' + escapeHTML(card.label) + '</div>' +
+      '</button>';
     }
 
     function pickWrongGuess(testId, availableIds = [], offset = 0) {
@@ -1921,7 +2118,7 @@
     ];
 
     const LLM_LAYERS = [
-      { title: "词块数字卡", icon: "🔤", text: "先把文字切成词块，再变成机器能算的数字。", chips: ["小猫", "喜欢", "吃"] },
+      { title: "token 编号卡", icon: "🔤", text: "先把文字切成 token，再变成机器能算的编号。", chips: ["小猫 #7842", "喜欢 #3165", "吃 #9201"] },
       { title: "注意力层", icon: "📡", text: "词块们互相看：谁对猜下一个词最重要？", chips: ["小猫 45%", "吃 30%"] },
       { title: "小计算层", icon: "🧮", text: "把刚才看到的信息整理一下。", chips: ["动物", "吃什么"] },
       { title: "猜词出口", icon: "🎯", text: "给候选词打分，选出下一个词。", chips: ["鱼 65%", "牛奶 18%"] },
@@ -1961,6 +2158,83 @@
       return TOKEN_MODES.find(m => m.id === state.tokenMode) || TOKEN_MODES[2];
     }
 
+    const COMMON_TOKEN_WORDS = [
+      "不客气", "小朋友", "机器人", "注意力", "大模型", "词块", "语言", "工厂",
+      "下雨", "出门", "雨伞", "晚上", "困了", "睡觉", "早上", "谢谢", "你好",
+      "小猫", "小狗", "喜欢", "苹果", "牛奶", "骨头", "天气", "公园", "放学",
+      "我们", "今天", "AI", "GPT", "token", "Token"
+    ].sort((a, b) => b.length - a.length);
+
+    function escapeHTML(value = "") {
+      const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+      return String(value).split("").map(ch => map[ch] || ch).join("");
+    }
+
+    function classroomTokenId(text) {
+      let hash = 2166136261;
+      for (const ch of String(text)) {
+        hash ^= ch.codePointAt(0);
+        hash = Math.imul(hash, 16777619) >>> 0;
+      }
+      return 100 + (hash % 99900);
+    }
+
+    function isChineseChar(ch) {
+      const code = ch.codePointAt(0);
+      return code >= 0x4e00 && code <= 0x9fff;
+    }
+    function isAsciiWordChar(ch) {
+      const code = ch.codePointAt(0);
+      return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || ch === "_";
+    }
+    function isSpaceChar(ch) { return ch.trim() === ""; }
+    function isPunctuation(ch) { return "，。！？,.!?：:；;、（）()《》“”\"'-".includes(ch); }
+
+    function classroomTokenize(text) {
+      const input = String(text || "").trim() || "小猫喜欢吃鱼。";
+      const tokens = [];
+      let i = 0;
+      while (i < input.length) {
+        const ch = input[i];
+        if (isSpaceChar(ch)) {
+          let j = i + 1;
+          while (j < input.length && isSpaceChar(input[j])) j++;
+          const raw = input.slice(i, j);
+          tokens.push({ text: raw, display: "␠ 空格", kind: "空格", note: "真实 GPT 常把空格和英文词连在一起。" });
+          i = j;
+          continue;
+        }
+        if (isAsciiWordChar(ch)) {
+          let j = i + 1;
+          while (j < input.length && isAsciiWordChar(input[j])) j++;
+          const raw = input.slice(i, j);
+          tokens.push({ text: raw, display: raw, kind: "英文/数字", note: "英文里常见的是词或词的一部分。" });
+          i = j;
+          continue;
+        }
+        if (isChineseChar(ch)) {
+          const matched = COMMON_TOKEN_WORDS.find(word => input.slice(i).startsWith(word));
+          if (matched) {
+            tokens.push({ text: matched, display: matched, kind: matched.length > 1 ? "常见词块" : "单字", note: matched.length > 1 ? "常见组合可能被当作一个 token。" : "不常见组合可能拆成单字。" });
+            i += matched.length;
+          } else {
+            tokens.push({ text: ch, display: ch, kind: "单字", note: "中文里很多字会单独成为 token。" });
+            i += 1;
+          }
+          continue;
+        }
+        if (isPunctuation(ch)) {
+          tokens.push({ text: ch, display: ch, kind: "标点", note: "标点也可能是一个 token。" });
+          i += 1;
+          continue;
+        }
+        const cp = Array.from(input.slice(i))[0];
+        tokens.push({ text: cp, display: cp, kind: "符号", note: "表情或特殊符号也会被拆成 token。" });
+        i += cp.length;
+      }
+      return tokens.map(t => ({ ...t, id: classroomTokenId(t.text) }));
+    }
+
     function currentLLMExample() {
       return LLM_EXAMPLES.find(e => e.id === state.brainExample) || LLM_EXAMPLES[0];
     }
@@ -1968,8 +2242,10 @@
     function renderBrain() {
       const ex = currentLLMExample();
       const tokenMode = currentTokenMode();
-      $("#token-sentence-view").innerHTML = ex.tokens.map(t => `<span class="word-token ${t.includes("_") ? "blank-token" : ""}">${t}</span>`).join("");
-      $("#vector-card-view").innerHTML = ex.tokens.filter(t => !t.includes("_")).map(t => `<div class="vector-row"><strong>${t}</strong><div class="vector-dots">${(ex.vectors[t] || ["#60a5fa", "#22c55e", "#facc15", "#8b5cf6"]).map(color => `<span class="vector-dot" style="background:${color}"></span>`).join("")}</div></div>`).join("");
+      const tokenized = classroomTokenize(state.tokenInput);
+      $("#token-input").value = state.tokenInput;
+      $("#token-sentence-view").innerHTML = tokenized.map(t => `<span class="word-token">${escapeHTML(t.display)}</span>`).join("");
+      $("#vector-card-view").innerHTML = `<div class="token-table"><div class="token-row header"><div>token 字幕</div><div>token 编号</div><div>类型</div><div>说明</div></div>${tokenized.map(t => `<div class="token-row"><div class="token-text-cell">${escapeHTML(t.display)}</div><div class="token-id-cell">#${t.id}</div><div class="token-kind-cell">${escapeHTML(t.kind)}</div><div class="token-note-cell">${escapeHTML(t.note)}</div></div>`).join("")}</div><div class="note blue" style="margin-top:14px">这里是离线单文件的“课堂版 GPT 风格 tokenizer”。真实 GPT 的 token id 取决于具体模型和 tokenizer；如果接入后端或 OpenAI tokenizer，可以替换成真实编号。</div>`;
       $("#token-mode-tabs").innerHTML = TOKEN_MODES.map(mode => `<button class="token-mode-btn ${state.tokenMode === mode.id ? "active" : ""}" data-token-mode="${mode.id}">${mode.icon} ${mode.title}</button>`).join("");
       $("#token-mode-demo").innerHTML = `<div class="token-demo-box"><div style="font-weight:1000;color:#334155">${tokenMode.label}</div><div class="token-demo-pieces">${tokenMode.pieces.map(piece => `<span class="token-piece ${tokenMode.pieceClass}">${piece}</span>`).join("")}</div><div class="token-demo-result"><strong>结果：</strong>${tokenMode.result}</div></div>`;
 
@@ -1999,20 +2275,128 @@
 
       $all("[data-attention-example]").forEach(btn => btn.onclick = () => { state.brainExample = btn.dataset.attentionExample; state.brainLayerStep = 0; renderBrain(); });
       $all("[data-token-mode]").forEach(btn => btn.onclick = () => { state.tokenMode = btn.dataset.tokenMode; renderBrain(); });
+      $all("[data-token-sample]").forEach(btn => btn.onclick = () => { state.tokenInput = btn.dataset.tokenSample; renderBrain(); });
+      $("#tokenize-btn").onclick = () => { state.tokenInput = $("#token-input").value || "小猫喜欢吃鱼。"; renderBrain(); };
+      $("#token-input").onkeydown = (e) => { if (e.key === "Enter") { state.tokenInput = e.target.value || "小猫喜欢吃鱼。"; renderBrain(); } };
+    }
+
+    const CUSTOM_DIALOG_STORAGE_KEY = "aiKidsCustomDialogCardsV1";
+
+    function answerToTokens(answer) {
+      const tokens = classroomTokenize(answer)
+        .filter(t => t.kind !== "空格")
+        .map(t => String(t.text).trim())
+        .filter(Boolean);
+      return tokens.length ? tokens : ["我", "还", "没", "想", "好", "。"];
+    }
+
+    function normalizeCustomDialogCard(raw) {
+      if (!raw || !raw.question || !raw.rawAnswer) return null;
+      const answerTokens = Array.isArray(raw.answerTokens) && raw.answerTokens.length ? raw.answerTokens : answerToTokens(raw.rawAnswer);
+      return {
+        id: String(raw.id || `custom-${Date.now()}`),
+        group: String(raw.group || "自定义"),
+        icon: String(raw.icon || "⭐"),
+        question: String(raw.question).slice(0, 36),
+        rawAnswer: String(raw.rawAnswer).slice(0, 60),
+        answerTokens,
+        displayAnswer: answerTokens.join(" "),
+        custom: true,
+      };
+    }
+
+    function loadCustomDialogCards() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CUSTOM_DIALOG_STORAGE_KEY) || "[]");
+        saved.map(normalizeCustomDialogCard).filter(Boolean).forEach(card => {
+          if (!DIALOG_CARDS.some(c => c.id === card.id)) DIALOG_CARDS.push(card);
+        });
+      } catch (error) {
+        console.warn("无法读取自定义对话卡", error);
+      }
+    }
+
+    function saveCustomDialogCards() {
+      try {
+        const customCards = DIALOG_CARDS.filter(c => c.custom).map(c => ({
+          id: c.id,
+          group: c.group,
+          icon: c.icon,
+          question: c.question,
+          rawAnswer: c.rawAnswer || c.displayAnswer,
+          answerTokens: c.answerTokens,
+        }));
+        localStorage.setItem(CUSTOM_DIALOG_STORAGE_KEY, JSON.stringify(customCards));
+      } catch (error) {
+        console.warn("无法保存自定义对话卡", error);
+      }
+    }
+
+    function createCustomDialogCard() {
+      const question = $("#custom-dialog-question").value.trim();
+      const rawAnswer = $("#custom-dialog-answer").value.trim();
+      const group = $("#custom-dialog-group").value || "自定义";
+      const icon = $("#custom-dialog-icon").value || "⭐";
+      if (!question || !rawAnswer) {
+        state.customDialogMessage = "请先填写问题和回答。";
+        renderGame();
+        return;
+      }
+      const answerTokens = answerToTokens(rawAnswer);
+      const card = {
+        id: `custom-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+        group,
+        icon,
+        question,
+        rawAnswer,
+        answerTokens,
+        displayAnswer: answerTokens.join(" "),
+        custom: true,
+      };
+      DIALOG_CARDS.push(card);
+      saveCustomDialogCards();
+      if (!state.gameBucket.includes(card.id)) state.gameBucket.push(card.id);
+      resetGameTraining();
+      state.customDialogMessage = `已创建「${question}」，并放进训练机。`;
+      renderGame();
+    }
+
+    function deleteCustomDialogCard(id) {
+      const card = dialogById(id);
+      if (!card || !card.custom) return;
+      const index = DIALOG_CARDS.findIndex(c => c.id === id);
+      if (index >= 0) DIALOG_CARDS.splice(index, 1);
+      state.gameBucket = state.gameBucket.filter(x => x !== id);
+      state.trainedDialogIds = state.trainedDialogIds.filter(x => x !== id);
+      if (state.chatQuestionId === id) state.chatQuestionId = null;
+      if (state.currentSourceCardId === id) state.currentSourceCardId = null;
+      saveCustomDialogCards();
+      resetGameTraining();
+      state.customDialogMessage = "已删除这张自定义对话卡。";
+      renderGame();
     }
 
     function dialogById(id) { return DIALOG_CARDS.find(c => c.id === id); }
 
     function dialogCardHTML(card, selected = false, draggable = false, source = "") {
-      return `<button class="dialog-card ${selected ? "selected" : ""}" data-dialog-id="${card.id}" ${draggable ? "draggable='true'" : ""} ${source ? `data-source='${source}'` : ""}>
-        <div class="dialog-top"><div class="dialog-icon">${card.icon}</div><span class="dialog-group">${card.group}</span></div>
-        <div class="dialog-question">${card.question}</div>
-        <div class="dialog-answer">→ <strong>${card.displayAnswer}</strong></div>
-      </button>`;
+      const draggableAttr = draggable ? " draggable='true' data-dialog-drag='true'" : "";
+      const customClass = card.custom ? " custom-card" : "";
+      const selectedClass = selected ? " selected" : "";
+      const topBadge = card.custom ? '<span class="custom-badge">我的卡</span>' : '';
+      const actions = card.custom
+        ? '<div class="dialog-actions"><span class="custom-badge">可训练新知识</span><button class="dialog-delete-btn" data-delete-custom="' + card.id + '" type="button">删除</button></div>'
+        : '';
+      return '<div class="dialog-card' + selectedClass + customClass + '" data-dialog-id="' + card.id + '"' + draggableAttr + '>' +
+        '<button class="dialog-card-main" data-dialog-select="' + card.id + '" type="button">' +
+          '<div class="dialog-top"><div class="dialog-icon">' + card.icon + '</div><span class="dialog-group">' + escapeHTML(card.group) + '</span>' + topBadge + '</div>' +
+          '<div class="dialog-question">' + escapeHTML(card.question) + '</div>' +
+          '<div class="dialog-answer">→ <strong>' + escapeHTML(card.displayAnswer) + '</strong></div>' +
+        '</button>' + actions +
+      '</div>';
     }
 
     function miniDialogHTML(card) {
-      return `<div class="mini-dialog-card"><span style="font-size:20px">${card.icon}</span> <strong>${card.question}</strong><br><span style="color:#64748b">→ ${card.displayAnswer}</span></div>`;
+      return `<div class="mini-dialog-card"><button class="bucket-remove-btn" data-remove-bucket="${card.id}" type="button">移出</button><span style="font-size:20px">${card.icon}</span> <strong>${escapeHTML(card.question)}</strong><br><span style="color:#64748b">→ ${escapeHTML(card.displayAnswer)}</span></div>`;
     }
 
     function buildMiniLanguageModel(ids = state.trainedDialogIds) {
@@ -2096,6 +2480,7 @@
 
     function renderGame() {
       $("#game-card-bank").innerHTML = DIALOG_CARDS.map(c => dialogCardHTML(c, state.gameBucket.includes(c.id), true, "game-bank")).join("");
+      $("#custom-dialog-status").textContent = state.customDialogMessage || "";
       const bucketCards = DIALOG_CARDS.filter(c => state.gameBucket.includes(c.id));
       $("#drop-zone").innerHTML = bucketCards.length ? `<div class="dialog-selected-list">${bucketCards.map(miniDialogHTML).join("")}</div>` : `<div class="drop-empty">👆<br/>把对话卡拖到这里</div>`;
       $("#game-selected-count").textContent = state.gameBucket.length;
@@ -2127,10 +2512,19 @@
       $("#game-creativity-slider").value = state.gameCreativity;
       $("#game-creativity-note").textContent = state.gameCreativity < 35 ? "更稳：更容易选择最高概率的词。" : state.gameCreativity > 70 ? "更有创意：低概率词也更有机会被选中。" : "更稳更像考试，更有创意更像写故事。";
 
-      $all("[data-source='game-bank']").forEach(btn => {
-        btn.onclick = () => addGameCard(btn.dataset.dialogId);
-        btn.ondragstart = () => { state.dragId = btn.dataset.dialogId; };
+      $all("[data-dialog-select]").forEach(btn => {
+        btn.onclick = () => toggleGameCard(btn.dataset.dialogSelect);
       });
+      $all("[data-dialog-drag]").forEach(card => {
+        card.ondragstart = () => { state.dragId = card.dataset.dialogId; };
+      });
+      $all("[data-delete-custom]").forEach(btn => {
+        btn.onclick = (event) => { event.stopPropagation(); deleteCustomDialogCard(btn.dataset.deleteCustom); };
+      });
+      $all("[data-remove-bucket]").forEach(btn => {
+        btn.onclick = () => removeGameCard(btn.dataset.removeBucket);
+      });
+      $("#create-custom-dialog-btn").onclick = createCustomDialogCard;
       $all("[data-chat-question]").forEach(btn => {
         btn.onclick = () => startDialogChat(btn.dataset.chatQuestion);
       });
@@ -2147,7 +2541,14 @@
       clearTimers();
     }
     function addGameCard(id) {
+      if (!dialogById(id)) return;
       if (!state.gameBucket.includes(id)) state.gameBucket.push(id);
+      resetGameTraining();
+      renderGame();
+    }
+    function toggleGameCard(id) {
+      if (!dialogById(id)) return;
+      state.gameBucket = state.gameBucket.includes(id) ? state.gameBucket.filter(x => x !== id) : [...state.gameBucket, id];
       resetGameTraining();
       renderGame();
     }
@@ -2243,6 +2644,7 @@
       });
     }
 
+    loadCustomDialogCards();
     renderHome();
     renderLearn();
     renderBrain();
@@ -2253,3 +2655,4 @@
   </script>
 </body>
 </html>
+
