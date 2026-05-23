@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI音乐小作曲家 v4.2｜歌词模板 + 编辑器版</title>
+<title>AI音乐小作曲家 v4.3｜故事结构增强版</title>
 <style>
 :root{--blue:#1a73e8;--green:#34a853;--yellow:#fbbc04;--red:#ea4335;--ink:#202124;--sub:#5f6368;--line:#dadce0;--bg:#f8fbff;--soft:#e8f0fe}
 *{box-sizing:border-box}
@@ -24,7 +24,7 @@ button{border:1px solid var(--line);border-radius:999px;background:white;color:v
 .choice-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.choice{border:1px solid var(--line);border-radius:14px;padding:10px;font-weight:600;background:#fff}.choice input{width:auto;margin-right:6px}
 .prompt{white-space:pre-wrap;line-height:1.7;background:#f8fbff;border:1px solid #c6dafc;border-radius:18px;padding:16px;min-height:360px;font-size:15px}.note{background:#fff8e1;border:1px solid #f3d37a;border-radius:18px;padding:14px;color:#5f4b17;line-height:1.65}
 .ctaImg{display:grid;grid-template-rows:auto 1fr;gap:12px}.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#202124;color:white;padding:10px 16px;border-radius:999px;display:none}
-.footerBox{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}.mini{font-size:13px;color:var(--sub)}.presetBox{border:1px dashed #c6dafc;background:#f8fbff;border-radius:18px;padding:12px;margin:12px 0}.presetBox button{font-size:14px;padding:8px 12px}.prompt-editor{width:100%;font-family:Arial,'Microsoft YaHei','PingFang SC',sans-serif}.status{margin-top:8px;font-size:13px;color:var(--sub)}
+.footerBox{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}.mini{font-size:13px;color:var(--sub)}#structure textarea{min-height:76px;font-size:14px}.presetBox{border:1px dashed #c6dafc;background:#f8fbff;border-radius:18px;padding:12px;margin:12px 0}.presetBox button{font-size:14px;padding:8px 12px}.prompt-editor{width:100%;font-family:Arial,'Microsoft YaHei','PingFang SC',sans-serif}.status{margin-top:8px;font-size:13px;color:var(--sub)}
 @media(max-width:860px){.hero,.grid2,.grid3,.grid4,.footerBox{grid-template-columns:1fr}h1{font-size:38px}}
 </style>
 </head>
@@ -32,7 +32,7 @@ button{border:1px solid var(--line);border-radius:999px;background:white;color:v
 <div class="page">
 
   <div class="nav">
-    <div class="nav-title">♪ AI音乐小作曲家 v4.2｜歌词模板 + 编辑器版</div>
+    <div class="nav-title">♪ AI音乐小作曲家 v4.3｜故事结构增强版</div>
     <div class="nav-links">
       <a href="#examples">示例音乐</a>
       <a href="#story">故事</a>
@@ -77,22 +77,35 @@ button{border:1px solid var(--line);border-radius:999px;background:white;color:v
   </section>
 
   <section class="panel" id="story">
-    <h2>第一步：选择故事</h2>
-    <p>音乐要服务故事。先确定主角、场景和发生了什么。</p>
-    <div>
+    <h2>第一步：选择故事灵感</h2>
+    <p>可以直接点故事卡片，也可以自己改作品名、主角、场景和故事一句话。自定义故事保留，适合孩子自由发挥。</p>
+
+    <div class="grid3">
       <button onclick="setStory('小猫登月记','一只勇敢的小猫','月亮和星空','一只小猫第一次坐火箭来到月亮，它一开始有点紧张，后来发现星空非常美丽。')">小猫登月记</button>
       <button onclick="setStory('熊猫功夫比赛','一只会功夫的小熊猫','竹林比赛场','小熊猫努力练习，最后勇敢站上比赛舞台。')">熊猫功夫比赛</button>
       <button onclick="setStory('小机器人找朋友','一个小机器人','未来城市雨夜','小机器人一开始孤单，后来找到了愿意陪它的朋友。')">小机器人找朋友</button>
       <button onclick="setStory('魔法森林冒险','一只小狐狸','会发光的森林','小狐狸走进会发光的森林，听见奇怪声音，发现一扇秘密门。')">魔法森林冒险</button>
+      <button onclick="setStory('海底寻宝队','一只戴潜水镜的小海豚','彩色珊瑚海底','小海豚和朋友潜入海底，寻找一颗会唱歌的珍珠。')">海底寻宝队</button>
+      <button onclick="setStory('云朵上的音乐会','一只会弹钢琴的小兔子','软绵绵的云朵舞台','小兔子在云朵上举办音乐会，让天空里的星星一起跳舞。')">云朵上的音乐会</button>
+      <button onclick="setStory('龙舟小英雄','一个第一次参加龙舟赛的小朋友','热闹的河边赛场','小朋友和队友一起划龙舟，从紧张到勇敢，最后听见大家的欢呼声。')">龙舟小英雄</button>
+      <button onclick="setStory('恐龙图书馆','一只爱读书的小恐龙','巨大的森林图书馆','小恐龙在图书馆里发现一本会发光的书，书里藏着通往远古世界的地图。')">恐龙图书馆</button>
+      <button onclick="setStory('星际快递员','一个小小太空快递员','未来空间站','小快递员要把一份重要礼物送到遥远星球，路上遇见了流星雨。')">星际快递员</button>
+      <button onclick="setStory('雨后彩虹巴士','一辆会说话的彩虹巴士','雨后的城市街道','彩虹巴士接上几个迷路的小动物，把它们安全送回家。')">雨后彩虹巴士</button>
+      <button onclick="setStory('古城夜游记','一只提着灯笼的小猫','灯火闪闪的古城小巷','小猫夜晚走进古城小巷，听见远处传来古老又温暖的旋律。')">古城夜游记</button>
+      <button onclick="setStory('糖果星球派对','一个爱跳舞的小女孩','彩色糖果星球','小女孩来到糖果星球，和糖果机器人一起举办一场开心派对。')">糖果星球派对</button>
       <button onclick="setStory('自定义故事','','','请在这里输入自己的故事。')">自定义故事</button>
     </div>
+
     <div class="grid3">
       <div><label>作品名</label><input id="title" value="小猫登月记"></div>
       <div><label>主角</label><input id="hero" value="一只勇敢的小猫"></div>
       <div><label>场景</label><input id="scene" value="月亮和星空"></div>
     </div>
+
     <label>故事一句话</label>
     <textarea id="storyText">一只小猫第一次坐火箭来到月亮，它一开始有点紧张，后来发现星空非常美丽。</textarea>
+
+    <div class="note" style="margin-top:14px">课堂用法：先让孩子点一个故事卡片，再允许他们改 1 个元素，比如把“小猫”改成“机器人”，把“月亮”改成“海底”。这样既不空白，又有创作自由。</div>
   </section>
 
   <section class="panel" id="type">
@@ -179,13 +192,71 @@ button{border:1px solid var(--line);border-radius:999px;background:white;color:v
 
   <section class="panel" id="structure">
     <h2>第四步：设计音乐结构</h2>
-    <p>音乐像作文，也有开头、发展、高潮和结尾。</p>
+    <p>音乐像作文，也有开头、发展、高潮和结尾。每一段都可以选择模板，也可以写自定义内容。</p>
+
     <div class="grid4">
-      <div><label>0–8秒 开头</label><select id="s1"><option>轻柔、神秘，像故事刚开始</option><option>开心、明亮，像出发</option><option>安静、温柔，像睡前故事</option></select></div>
-      <div><label>8–20秒 发展</label><select id="s2"><option>节奏慢慢出现，主角开始行动</option><option>速度变快，像开始奔跑</option><option>声音变多，像进入新世界</option></select></div>
-      <div><label>20–35秒 高潮</label><select id="s3"><option>旋律变明亮，表现看到美丽星空</option><option>鼓点更明显，表现挑战成功</option><option>音乐变热闹，表现大家一起庆祝</option></select></div>
-      <div><label>35–45秒 结尾</label><select id="s4"><option>温暖收束，适合作为结尾</option><option>轻轻结束，留下想象空间</option><option>开心结束，像完成一次冒险</option></select></div>
+      <div>
+        <label>0–8秒 开头</label>
+        <select id="s1">
+          <option>轻柔、神秘，像故事刚开始</option>
+          <option>开心、明亮，像主角准备出发</option>
+          <option>安静、温柔，像睡前故事开头</option>
+          <option>节奏轻快，像打开一扇新门</option>
+          <option>低声铺垫，像有秘密即将出现</option>
+          <option>中国风引子，像古城灯火慢慢亮起</option>
+          <option>电子音闪烁，像进入未来世界</option>
+          <option>自定义</option>
+        </select>
+        <textarea id="s1Custom" placeholder="自定义开头，例如：用轻轻的钢琴和风声，像主角第一次看见森林入口。"></textarea>
+      </div>
+
+      <div>
+        <label>8–20秒 发展</label>
+        <select id="s2">
+          <option>节奏慢慢出现，主角开始行动</option>
+          <option>速度变快，像开始奔跑</option>
+          <option>声音变多，像进入新世界</option>
+          <option>加入鼓点，像队伍开始前进</option>
+          <option>旋律上升，像主角越来越勇敢</option>
+          <option>乐器一层层加入，像朋友陆续出现</option>
+          <option>节奏轻轻摇摆，像旅途变得有趣</option>
+          <option>自定义</option>
+        </select>
+        <textarea id="s2Custom" placeholder="自定义发展，例如：加入小鼓和铃铛，表现主角小心地往前走。"></textarea>
+      </div>
+
+      <div>
+        <label>20–35秒 高潮</label>
+        <select id="s3">
+          <option>旋律变明亮，表现看到美丽星空</option>
+          <option>鼓点更明显，表现挑战成功</option>
+          <option>音乐变热闹，表现大家一起庆祝</option>
+          <option>旋律最高点出现，像秘密终于揭开</option>
+          <option>节奏最强，像比赛冲向终点</option>
+          <option>加入合唱感，像朋友们一起唱起来</option>
+          <option>乐器全部加入，像画面最精彩的一刻</option>
+          <option>自定义</option>
+        </select>
+        <textarea id="s3Custom" placeholder="自定义高潮，例如：旋律突然变大，像小狐狸发现秘密门打开了。"></textarea>
+      </div>
+
+      <div>
+        <label>35–45秒 结尾</label>
+        <select id="s4">
+          <option>温暖收束，适合作为结尾</option>
+          <option>轻轻结束，留下想象空间</option>
+          <option>开心结束，像完成一次冒险</option>
+          <option>慢慢变安静，像夜晚重新安静下来</option>
+          <option>留下一个小尾音，像故事还会继续</option>
+          <option>明亮大结尾，像大家一起欢呼</option>
+          <option>回到开头的旋律，形成完整故事感</option>
+          <option>自定义</option>
+        </select>
+        <textarea id="s4Custom" placeholder="自定义结尾，例如：最后只留下钢琴和铃铛，像星星慢慢消失。"></textarea>
+      </div>
     </div>
+
+    <div class="note" style="margin-top:14px">小朋友理解方式：开头是“故事开始了”，发展是“主角动起来”，高潮是“最精彩的一刻”，结尾是“故事收住”。</div>
   </section>
 
   <section class="panel" id="prompt">

@@ -59,6 +59,14 @@ function loadLyricsPreset(key) {
   refresh(true);
 }
 
+function structureValue(selectId, customId) {
+  var selected = get(selectId).value;
+  var custom = val(customId, "");
+  if (selected === "自定义" && custom) return custom;
+  if (selected === "自定义") return "自定义音乐变化：请描述这一段的声音变化。";
+  return selected;
+}
+
 function data() {
   return {
     type: radio("songType") || "bgm",
@@ -73,10 +81,10 @@ function data() {
     voice: get("voice").value,
     style: checked("style").join(" + ") || "儿童动画",
     instruments: checked("instruments").join("、") || "钢琴",
-    s1: get("s1").value,
-    s2: get("s2").value,
-    s3: get("s3").value,
-    s4: get("s4").value,
+    s1: structureValue("s1", "s1Custom"),
+    s2: structureValue("s2", "s2Custom"),
+    s3: structureValue("s3", "s3Custom"),
+    s4: structureValue("s4", "s4Custom"),
     reason: val("reason", "我觉得这一版最适合我的故事。")
   };
 }
