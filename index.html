@@ -118,11 +118,58 @@
     .projects {
       max-width: 1200px; margin: 0 auto; padding: 0 24px 60px;
     }
-    .section-title {
-      font-size: 14px; text-transform: uppercase;
-      letter-spacing: 0.08em; color: var(--muted);
-      margin-bottom: 20px; font-weight: 700;
+
+    /* Category Navigation */
+    .cat-nav {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 40px;
     }
+    .cat-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border-radius: 100px;
+      font-size: 14px; font-weight: 700; text-decoration: none;
+      background: var(--card); color: var(--muted);
+      border: 1px solid var(--line);
+      transition: all .2s;
+    }
+    .cat-pill:hover {
+      background: var(--sky); color: var(--blue);
+      border-color: var(--blue);
+      transform: translateY(-2px);
+    }
+
+    /* Category Sections */
+    .category {
+      margin-bottom: 48px;
+      scroll-margin-top: 80px;
+    }
+    .category:last-child { margin-bottom: 0; }
+
+    .category-head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .category-icon {
+      width: 44px; height: 44px; border-radius: 16px;
+      display: grid; place-items: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .category-icon.blue { background: linear-gradient(135deg, #eaf6ff, #d4edff); }
+    .category-icon.green { background: linear-gradient(135deg, #eafff5, #b8f0d0); }
+    .category-icon.pink { background: linear-gradient(135deg, #ffe4f0, #fecdd5); }
+    .category-icon.purple { background: linear-gradient(135deg, #f0edff, #dcd4ff); }
+
+    .category-head h2 {
+      font-size: 22px; font-weight: 800; margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .category-count {
+      margin-left: auto;
+      font-size: 13px; color: var(--muted);
+      background: #f1f5f9; padding: 4px 14px;
+      border-radius: 100px; font-weight: 700;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -240,12 +287,12 @@
     <p>AI 小小实验室、AI 小小导演、橘宝老师数学课……<br>把抽象知识变成看得见、摸得着、能互动的学习体验。</p>
     <div class="hero-stats">
       <div class="stat">
-        <div class="num">8</div>
-        <div class="label">学习模块</div>
+        <div class="num">4</div>
+        <div class="label">课程分类</div>
       </div>
       <div class="stat">
-        <div class="num">4</div>
-        <div class="label">HTML 课程</div>
+        <div class="num">9</div>
+        <div class="label">互动项目</div>
       </div>
       <div class="stat">
         <div class="num">∞</div>
@@ -265,159 +312,211 @@
 </section>
 
 <section class="projects">
-  <div class="section-title">📚 课程模块</div>
-  <div class="grid">
+  <div class="cat-nav">
+    <a class="cat-pill" href="#cat-ai">🤖 AI 认知课</a>
+    <a class="cat-pill" href="#cat-code">💻 编程与宇宙</a>
+    <a class="cat-pill" href="#cat-creative">🎵 创意工坊</a>
+    <a class="cat-pill" href="#cat-math">📐 学科辅导</a>
+  </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon blue">🧪</div>
-        <div class="card-title">
-          <h3>AI 小小实验室</h3>
-          <span class="tag ai">AI 入门</span>
+  <!-- 🤖 AI 认知课 -->
+  <div class="category" id="cat-ai">
+    <div class="category-head">
+      <div class="category-icon blue">🤖</div>
+      <h2>AI 认知课</h2>
+      <span class="category-count">4 个项目</span>
+    </div>
+    <div class="grid">
+
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon blue">🧪</div>
+          <div class="card-title">
+            <h3>AI 小小实验室</h3>
+            <span class="tag ai">AI 入门</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>带孩子认识 AI：什么是机器学习？AI 怎么"学习"？通过互动演示和可视化流程，让抽象概念变得直观可感。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./0_ai-entry/ai-learn-2.html.html">🚀 开始学习</a>
+          <a class="btn btn-ghost" href="./0_ai-entry/">📁 目录</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>带孩子认识 AI：什么是机器学习？AI 怎么"学习"？通过互动演示和可视化流程，让抽象概念变得直观可感。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./0_ai-entry/ai-learn-2.html.html">🚀 开始学习</a>
-        <a class="btn btn-ghost" href="./0_ai-entry/">📁 目录</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon orange">🎬</div>
-        <div class="card-title">
-          <h3>AI 小小导演</h3>
-          <span class="tag video">视频创作</span>
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon orange">🎬</div>
+          <div class="card-title">
+            <h3>AI 小小导演</h3>
+            <span class="tag video">视频创作</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>课堂版视频提示词生成器。教孩子用文字"导演"AI 生成视频，学习提示词工程（Prompt Engineering）的基础。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./2_ai-video/ai-video-home-v1.html">🚀 开始创作</a>
+          <a class="btn btn-ghost" href="./2_ai-video/">📁 目录</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>课堂版视频提示词生成器。教孩子用文字"导演"AI 生成视频，学习提示词工程（Prompt Engineering）的基础。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./2_ai-video/ai-video-home-v1.html">🚀 开始创作</a>
-        <a class="btn btn-ghost" href="./2_ai-video/">📁 目录</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon purple">🖼️</div>
-        <div class="card-title">
-          <h3>AI 小小画家</h3>
-          <span class="tag side">图片生成</span>
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon purple">🖼️</div>
+          <div class="card-title">
+            <h3>AI 小小画家</h3>
+            <span class="tag side">图片生成</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>（预留模块）AI 图片生成与创作。学习如何用文字描述生成图像，理解文生图（Text-to-Image）的基本原理。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-ghost" href="./1_ai-picture/">📁 查看目录</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>（预留模块）AI 图片生成与创作。学习如何用文字描述生成图像，理解文生图（Text-to-Image）的基本原理。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-ghost" href="./1_ai-picture/">📁 查看目录</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon pink">🎵</div>
-        <div class="card-title">
-          <h3>AI 小小音乐家</h3>
-          <span class="tag music">AI 音乐</span>
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon pink">🎵</div>
+          <div class="card-title">
+            <h3>AI 小小音乐家</h3>
+            <span class="tag music">AI 音乐</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>用 AI 创作属于自己的音乐！了解文生音乐（Text-to-Music）的原理，学习用文字描述旋律、节奏和风格，让 AI 帮你谱曲。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./3_ai-music/">🚀 开始上课</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>用 AI 创作属于自己的音乐！了解文生音乐（Text-to-Music）的原理，学习用文字描述旋律、节奏和风格，让 AI 帮你谱曲。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./3_ai-music/">🚀 开始上课</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon code">💻</div>
-        <div class="card-title">
-          <h3>AI 小小编程家</h3>
-          <span class="tag code">编程入门</span>
+    </div>
+  </div>
+
+  <!-- 💻 编程与宇宙 -->
+  <div class="category" id="cat-code">
+    <div class="category-head">
+      <div class="category-icon green">💻</div>
+      <h2>编程与宇宙</h2>
+      <span class="category-count">2 个项目</span>
+    </div>
+    <div class="grid">
+
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon code">💻</div>
+          <div class="card-title">
+            <h3>AI 小小编程家</h3>
+            <span class="tag code">编程入门</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>从穿孔纸带到 AI 写代码！体验编程的进化史：代码爪（Code Claw）模拟器、Gemini 粒子雨特效、AR 钢铁侠 HUD——让编程变得好玩又酷炫。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./4_ai_programing/code_claw.html">🦀 代码爪</a>
+          <a class="btn btn-ghost" href="./4_ai_programing/code_feeling.html">💗 情感共振</a>
+          <a class="btn btn-ghost" href="./4_ai_programing/gemini-rain.html">🌧️ 粒子雨</a>
+          <a class="btn btn-ghost" href="./4_ai_programing/ar_jarvis_hud.html">🤖 AR JARVIS</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>从穿孔纸带到 AI 写代码！体验编程的进化史：代码爪（Code Claw）模拟器、Gemini 粒子雨特效、AR 钢铁侠 HUD——让编程变得好玩又酷炫。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./4_ai_programing/code_claw.html">🦀 代码爪</a>
-        <a class="btn btn-ghost" href="./4_ai_programing/code_feeling.html">💗 情感共振</a>
-        <a class="btn btn-ghost" href="./4_ai_programing/gemini-rain.html">🌧️ 粒子雨</a>
-        <a class="btn btn-ghost" href="./4_ai_programing/ar_jarvis_hud.html">🤖 AR JARVIS</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon blue">☀️</div>
-        <div class="card-title">
-          <h3>太阳系模拟</h3>
-          <span class="tag ai">3D 宇宙</span>
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon blue">☀️</div>
+          <div class="card-title">
+            <h3>太阳系模拟</h3>
+            <span class="tag ai">3D 宇宙</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>用 Three.js 搭建的 3D 太阳系！Gemini 和 DeepSeek 各做了一版，风格不同但都超级酷——行星公转、轨道控制、自由视角探索宇宙🌌</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./4_ai_programing/solar_system_simulation_gemini.html">🤖 Gemini 版</a>
+          <a class="btn btn-ghost" href="./4_ai_programing/solor_system_simulation_deepseek.html">🦾 DeepSeek 版</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>用 Three.js 搭建的 3D 太阳系！Gemini 和 DeepSeek 各做了一版，风格不同但都超级酷——行星公转、轨道控制、自由视角探索宇宙🌌</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./4_ai_programing/solar_system_simulation_gemini.html">🤖 Gemini 版</a>
-        <a class="btn btn-ghost" href="./4_ai_programing/solor_system_simulation_deepseek.html">🦾 DeepSeek 版</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-        <div class="card-title">
-          <h3>Chrome Music Lab</h3>
-          <span class="tag music">互动音乐实验</span>
+    </div>
+  </div>
+
+  <!-- 🎵 创意工坊 -->
+  <div class="category" id="cat-creative">
+    <div class="category-head">
+      <div class="category-icon pink">🎵</div>
+      <h2>创意工坊</h2>
+      <span class="category-count">2 个项目</span>
+    </div>
+    <div class="grid">
+
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon pink">🎹</div>
+          <div class="card-title">
+            <h3>Chrome Music Lab</h3>
+            <span class="tag music">互动音乐实验</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>把 Chrome Music Lab 接入课程站。孩子可以直接试玩旋律、节奏、钢琴和声音可视化，再回到 AI 音乐课继续创作。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./chrome-music-lab/">🎹 打开实验站</a>
+          <a class="btn btn-ghost" href="./chrome-music-lab/musiclab.chromeexperiments.com/Song-Maker">🎼 Song Maker</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>把 Chrome Music Lab 接入课程站。孩子可以直接试玩旋律、节奏、钢琴和声音可视化，再回到 AI 音乐课继续创作。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./chrome-music-lab/">🎹 打开实验站</a>
-        <a class="btn btn-ghost" href="./chrome-music-lab/musiclab.chromeexperiments.com/Song-Maker">🎼 Song Maker</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon green">📐</div>
-        <div class="card-title">
-          <h3>橘宝老师数学课</h3>
-          <span class="tag math">八年级数学</span>
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon purple">🎬</div>
+          <div class="card-title">
+            <h3>HyperFrames 视频 Demo</h3>
+            <span class="tag video">AI 视频生成</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p><strong>"人类编程进化史"</strong> — 从穿孔纸带到 AI 写代码。HTML + GSAP 动画渲染为 MP4，全程不经剪辑软件。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./hyperframes-demo/">🎬 观看视频</a>
         </div>
       </div>
-      <div class="card-body">
-        <p>八年级数学 Day 1：坐标、函数、平移、一次函数……用小猫老师橘宝和 8 张教学图，把数学变成"能看见、能拖动、能诊断"的学习站。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./side/8grade/math/day1.html">🚀 开始上课</a>
-        <a class="btn btn-ghost" href="./side/8grade/math/">📁 目录</a>
-      </div>
-    </div>
 
-    <div class="project-card">
-      <div class="card-header">
-        <div class="card-icon purple">🎬</div>
-        <div class="card-title">
-          <h3>HyperFrames 视频 Demo</h3>
-          <span class="tag video">AI 视频生成</span>
+    </div>
+  </div>
+
+  <!-- 📐 学科辅导 -->
+  <div class="category" id="cat-math">
+    <div class="category-head">
+      <div class="category-icon purple">📐</div>
+      <h2>学科辅导</h2>
+      <span class="category-count">1 个项目</span>
+    </div>
+    <div class="grid">
+
+      <div class="project-card">
+        <div class="card-header">
+          <div class="card-icon green">📐</div>
+          <div class="card-title">
+            <h3>橘宝老师数学课</h3>
+            <span class="tag math">八年级数学</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>八年级数学 Day 1：坐标、函数、平移、一次函数……用小猫老师橘宝和 8 张教学图，把数学变成"能看见、能拖动、能诊断"的学习站。</p>
+        </div>
+        <div class="card-footer">
+          <a class="btn btn-primary" href="./side/8grade/math/day1.html">🚀 开始上课</a>
+          <a class="btn btn-ghost" href="./side/8grade/math/">📁 目录</a>
         </div>
       </div>
-      <div class="card-body">
-        <p><strong>"人类编程进化史"</strong> — 从穿孔纸带到 AI 写代码。HTML + GSAP 动画渲染为 MP4，全程不经剪辑软件。</p>
-      </div>
-      <div class="card-footer">
-        <a class="btn btn-primary" href="./hyperframes-demo/">🎬 观看视频</a>
-      </div>
-    </div>
 
+    </div>
   </div>
 </section>
 
