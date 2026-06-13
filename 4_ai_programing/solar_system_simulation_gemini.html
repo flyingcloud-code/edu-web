@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interactive Solar System Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Add Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        /* Glassmorphism UI panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+        
+        /* Custom scrollbar for info panel */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        /* Planet Labels */
+        .planet-label {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            pointer-events: none;
+            text-shadow: 0px 0px 4px #000, 0px 0px 8px #000;
+            transform: translate(-50%, -150%);
+            transition: opacity 0.1s;
+        }
+    </style>
+</head>
+<body class="text-white select-none">
+
+    <!-- Canvas Container -->
+    <canvas id="simCanvas"></canvas>
+
+    <!-- Labels Container -->
+    <div id="labelsContainer" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+
+    <!-- Hover Tooltip -->
+    <div id="hoverTooltip" class="glass-panel absolute p-4 rounded-xl shadow-lg pointer-events-none hidden z-50 text-sm border-sky-500/30 w-64">
+        <div class="font-bold text-sky-400 text-lg mb-2 border-b border-gray-600/50 pb-1">
+            <span id="ttNameZh"></span> <span class="text-sm text-gray-400 font-normal border-l border-gray-600 pl-2 ml-1" id="ttNameEn"></span>
+        </div>
+        <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-gray-300">
+            <span>发现者:</span> <span id="ttDiscoverer" class="text-white text-right"></span>
+            <span>距太阳:</span> <span id="ttDist" class="text-white text-right"></span>
+            <span>大小:</span> <span id="ttSize" class="text-white text-right"></span>
+            <span>自转周期:</span> <span id="ttRotation" class="text-white text-right"></span>
+            <span>公转周期:</span> <span id="ttOrbit" class="text-white text-right"></span>
+        </div>
+    </div>
+
+    <!-- Top UI: Info Panel -->
+    <div id="infoPanel" class="glass-panel absolute top-4 right-4 w-72 md:w-80 p-5 rounded-2xl shadow-2xl transition-all duration-300 transform translate-x-0 hidden">
+        <div class="flex justify-between items-start mb-3">
+            <h2 id="planetName" class="text-3xl font-bold text-sky-400">Sun</h2>
+            <button id="closeInfoBtn" class="text-gray-400 hover:text-white transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <p id="planetTagline" class="text-sm text-gray-300 italic mb-4">The star at the center of the Solar System.</p>
+        
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between border-b border-gray-600/50 pb-1">
+                <span class="text-gray-400">Type</span>
+                <span id="planetType" class="font-medium text-right">Yellow Dwarf Star</span>
+            </div>
+            <div class="flex justify-between border-b border-gray-600/50 pb-1">
+                <span class="text-gray-400">Distance from Sun</span>
+                <span id="planetDist" class="font-medium text-right">0 AU</span>
+            </div>
+            <div class="flex justify-between border-b border-gray-600/50 pb-1">
+                <span class="text-gray-400">Orbital Period</span>
+                <span id="planetPeriod" class="font-medium text-right">N/A</span>
+            </div>
+            <div class="flex justify-between border-b border-gray-600/50 pb-1">
+                <span class="text-gray-400">Radius</span>
+                <span id="planetRadius" class="font-medium text-right">696,340 km</span>
+            </div>
+        </div>
+        
+        <div class="mt-4 pt-3 border-t border-gray-600/50">
+            <p id="planetDesc" class="text-sm text-gray-300 leading-relaxed">
+                The Sun is a nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core. It radiates energy mainly as visible light, ultraviolet light, and infrared radiation.
+            </p>
+        </div>
+    </div>
+
+    <!-- Bottom Left UI: Controls -->
+    <div class="glass-panel absolute bottom-4 left-4 p-4 rounded-2xl shadow-2xl w-[90%] md:w-80 flex flex-col gap-4">
+        
+        <!-- Controls Header -->
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-lg flex items-center gap-2">
+                <i class="fas fa-sliders-h text-sky-400"></i> 控制面板
+            </h3>
+            <button id="playPauseBtn" class="bg-sky-500 hover:bg-sky-600 text-white w-10 h-10 rounded-full flex items-center justify-center transition shadow-[0_0_15px_rgba(14,165,233,0.4)]">
+                <i class="fas fa-pause"></i>
+            </button>
+        </div>
+
+        <!-- Visibility Toggles -->
+        <div class="flex gap-4">
+            <label class="flex items-center gap-2 text-sm cursor-pointer text-gray-300 hover:text-white">
+                <input type="checkbox" id="showOrbits" checked class="rounded border-slate-600 text-sky-500 focus:ring-sky-500 w-4 h-4 cursor-pointer">
+                显示轨道
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer text-gray-300 hover:text-white">
+                <input type="checkbox" id="showLabels" checked class="rounded border-slate-600 text-sky-500 focus:ring-sky-500 w-4 h-4 cursor-pointer">
+                显示名称
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer text-gray-300 hover:text-white">
+                <input type="checkbox" id="showMoons" checked class="rounded border-slate-600 text-sky-500 focus:ring-sky-500 w-4 h-4 cursor-pointer">
+                显示卫星
+            </label>
+        </div>
+
+        <!-- Orbit Appearance -->
+        <div class="flex items-center gap-3 bg-slate-800/50 p-2 rounded-lg">
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] text-gray-400 mb-1">轨道颜色</span>
+                <input type="color" id="orbitColor" value="#ffffff" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0">
+            </div>
+            <div class="flex-1">
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>轨道亮度</span>
+                </div>
+                <input type="range" id="orbitOpacity" min="0" max="1" step="0.05" value="0.08">
+            </div>
+        </div>
+
+        <!-- Time Speed Slider -->
+        <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                <span>时间流速</span>
+                <span id="speedValue">1.0x</span>
+            </div>
+            <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
+        </div>
+
+        <!-- Zoom Slider -->
+        <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                <span>缩放级别</span>
+                <span id="zoomValue">1.0x</span>
+            </div>
+            <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1">
+        </div>
+
+        <!-- Camera Follow -->
+        <div>
+            <label class="text-xs text-gray-400 mb-1 block">镜头跟随</label>
+            <select id="followSelect" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-sky-400 cursor-pointer">
+                <option value="-1">自由视角 (中心对准太阳)</option>
+                <!-- Filled via JS -->
+            </select>
+        </div>
+        
+        <div class="text-xs text-center text-gray-500 mt-1">
+            <i class="fas fa-mouse-pointer"></i> 悬停查看信息 • 拖动旋转 • 滚轮缩放
+        </div>
+    </div>
+
+    <!-- Title Overlay -->
+    <div class="absolute top-4 left-4 pointer-events-none">
+        <h1 class="text-3xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400 drop-shadow-lg">
+            ORION <span class="font-light text-white">SYSTEM</span>
+        </h1>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const canvas = document.getElementById('simCanvas');
+            
+            // --- Three.js Setup ---
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color('#050510');
+            
+            const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10000);
+            camera.position.set(0, 600, 1000);
+
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0x404040, 1.5));
+            const sunLight = new THREE.PointLight(0xffffff, 3, 4000);
+            scene.add(sunLight);
+
+            // --- UI Elements ---
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
+            const zoomSlider = document.getElementById('zoomSlider');
+            const zoomValue = document.getElementById('zoomValue');
+            const followSelect = document.getElementById('followSelect');
+            const infoPanel = document.getElementById('infoPanel');
+            const closeInfoBtn = document.getElementById('closeInfoBtn');
+            
+            const showOrbitsBtn = document.getElementById('showOrbits');
+            const showLabelsBtn = document.getElementById('showLabels');
+            const showMoonsBtn = document.getElementById('showMoons');
+            const orbitColorPicker = document.getElementById('orbitColor');
+            const orbitOpacitySlider = document.getElementById('orbitOpacity');
+            const hoverTooltip = document.getElementById('hoverTooltip');
+            const labelsContainer = document.getElementById('labelsContainer');
+
+            const pName = document.getElementById('planetName');
+            const pTagline = document.getElementById('planetTagline');
+            const pType = document.getElementById('planetType');
+            const pDist = document.getElementById('planetDist');
+            const pPeriod = document.getElementById('planetPeriod');
+            const pRadius = document.getElementById('planetRadius');
+            const pDesc = document.getElementById('planetDesc');
+
+            let isPaused = false;
+            let timeScale = 1.0;
+            let followingPlanetIndex = -1;
+            let selectedMesh = null;
+            let uniformTime = 0; // For Sun Shader
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // --- Data Structure (Updated with Moons) ---
+            const baseSpeed = 0.005; 
+            const celestialBodies = [
+                { name: "Sun", nameZh: "太阳", discoverer: "自古已知", rotation: "27 天", color: 0xFFD700, radius: 40, distance: 0, speed: 0, glow: true, type: "黄矮星 (Yellow Dwarf)", realDist: "0 AU", period: "N/A", realRadius: "696,340 km", desc: "太阳系中心的恒星，占据了太阳系总质量的99.86%。表面有动态的太阳黑子和猛烈的太阳风喷发。" },
+                { name: "Mercury", nameZh: "水星", discoverer: "自古已知", rotation: "58.6 天", color: 0xA8A8A8, radius: 4, distance: 80, speed: baseSpeed * 4.15, type: "类地行星", realDist: "0.39 AU", period: "88 天", realRadius: "2,439 km", desc: "太阳系中最小的行星，离太阳最近。没有天然卫星。由于没有大气层保温，表面昼夜温差极大。" },
+                { name: "Venus", nameZh: "金星", discoverer: "自古已知", rotation: "243 天 (逆向)", color: 0xE2C291, radius: 9, distance: 120, speed: baseSpeed * 1.62, type: "类地行星", realDist: "0.72 AU", period: "225 天", realRadius: "6,051 km", desc: "太阳系中最热的行星，拥有浓厚的二氧化碳大气层。没有天然卫星。自转方向与大多数行星相反。" },
+                { name: "Earth", nameZh: "地球", discoverer: "人类家园", rotation: "23.9 小时", color: 0x4B9FE3, radius: 10, distance: 170, speed: baseSpeed * 1.0, type: "类地行星", realDist: "1.00 AU", period: "365.25 天", realRadius: "6,371 km", desc: "目前已知宇宙中唯一存在生命的星球。拥有 1 颗天然卫星（月球）。", 
+                  moons: [{ name: "Moon", nameZh: "月球", discoverer: "自古已知", rotation: "27.3 天", color: 0xcccccc, radius: 2.5, distance: 18, speed: baseSpeed * 13, type: "岩石卫星", realDist: "384,400 km", period: "27.3 天", realRadius: "1,737 km", desc: "地球唯一的天然卫星，也是太阳系中第五大的卫星。它被地球潮汐锁定，永远以同一面朝向我们。" }] },
+                { name: "Mars", nameZh: "火星", discoverer: "自古已知", rotation: "24.6 小时", color: 0xE27B58, radius: 6, distance: 230, speed: baseSpeed * 0.53, type: "类地行星", realDist: "1.52 AU", period: "687 天", realRadius: "3,389 km", desc: "被称为“红色星球”，表面布满氧化铁。拥有 2 颗天然卫星。", 
+                  moons: [{ name: "Phobos", nameZh: "火卫一", discoverer: "阿萨夫·霍尔 (1877)", rotation: "7.6 小时", color: 0x888888, radius: 1.5, distance: 10, speed: baseSpeed * 10, type: "岩石卫星", realDist: "9,376 km", period: "7.6 小时", realRadius: "11 km", desc: "火星较大的一颗卫星，形状极不规则，正以每百年1.8米的速度逐渐靠近火星。" },
+                          { name: "Deimos", nameZh: "火卫二", discoverer: "阿萨夫·霍尔 (1877)", rotation: "30.3 小时", color: 0x999999, radius: 1.2, distance: 15, speed: baseSpeed * 6, type: "岩石卫星", realDist: "23,460 km", period: "30.3 小时", realRadius: "6.2 km", desc: "火星较小且较远的一颗卫星，同样具有极不规则的形状。" }] },
+                { name: "Jupiter", nameZh: "木星", discoverer: "自古已知", rotation: "9.9 小时", color: 0xC88B3A, radius: 26, distance: 380, speed: baseSpeed * 0.084, type: "气态巨行星", realDist: "5.20 AU", period: "12 年", realRadius: "69,911 km", desc: "太阳系中最大的行星。目前已知拥有高达 95 颗卫星。这里展示了最著名的四颗伽利略卫星。",
+                  moons: [{ name: "Io", nameZh: "木卫一", discoverer: "伽利略 (1610)", rotation: "1.77 天", color: 0xffffaa, radius: 3, distance: 35, speed: baseSpeed * 12, type: "岩石卫星", realDist: "421,700 km", period: "1.77 天", realRadius: "1,821 km", desc: "太阳系中火山活动最剧烈的天体，表面布满了活火山。" },
+                          { name: "Europa", nameZh: "木卫二", discoverer: "伽利略 (1610)", rotation: "3.55 天", color: 0xeeeeee, radius: 2.8, distance: 45, speed: baseSpeed * 9, type: "冰壳卫星", realDist: "670,900 km", period: "3.55 天", realRadius: "1,560 km", desc: "冰冷的表面下被认为隐藏着一个巨大的液态水海洋，是寻找地外生命的绝佳地点。" },
+                          { name: "Ganymede", nameZh: "木卫三", discoverer: "伽利略 (1610)", rotation: "7.15 天", color: 0xbbbbbb, radius: 4, distance: 58, speed: baseSpeed * 6, type: "冰岩卫星", realDist: "1,070,400 km", period: "7.15 天", realRadius: "2,634 km", desc: "太阳系中最大的卫星，甚至比水星还要大，并且拥有自己的磁场。" },
+                          { name: "Callisto", nameZh: "木卫四", discoverer: "伽利略 (1610)", rotation: "16.7 天", color: 0x999999, radius: 3.8, distance: 75, speed: baseSpeed * 4, type: "冰岩卫星", realDist: "1,882,700 km", period: "16.7 天", realRadius: "2,410 km", desc: "太阳系中表面陨石坑最密集的天体之一，地质活动非常稀少。" }] },
+                { name: "Saturn", nameZh: "土星", discoverer: "自古已知", rotation: "10.7 小时", color: 0xE4CDA7, radius: 22, distance: 530, speed: baseSpeed * 0.034, hasRings: true, type: "气态巨行星", realDist: "9.54 AU", period: "29.5 年", realRadius: "58,232 km", desc: "以其宽阔而美丽的冰环系统闻名于世。目前已知拥有 146 颗卫星，是卫星最多的行星。",
+                  moons: [{ name: "Titan", nameZh: "土卫六 (泰坦)", discoverer: "惠更斯 (1655)", rotation: "15.9 天", color: 0xdca65a, radius: 4.5, distance: 40, speed: baseSpeed * 7, type: "岩冰卫星", realDist: "1,221,870 km", period: "15.9 天", realRadius: "2,574 km", desc: "太阳系第二大卫星，也是唯一一个拥有浓厚大气层和表面液态湖泊（甲烷/乙烷）的卫星。" },
+                          { name: "Enceladus", nameZh: "土卫二", discoverer: "威廉·赫歇尔 (1789)", rotation: "1.37 天", color: 0xffffff, radius: 2, distance: 30, speed: baseSpeed * 11, type: "冰壳卫星", realDist: "237,948 km", period: "1.37 天", realRadius: "252 km", desc: "拥有惊人的冰火山喷发，将南极地下的液态海洋物质喷射到太空中，形成土星的E环。" }] },
+                { name: "Uranus", nameZh: "天王星", discoverer: "威廉·赫歇尔 (1781)", rotation: "17.2 小时", color: 0x8BC3D0, radius: 15, distance: 680, speed: baseSpeed * 0.012, hasRings: true, type: "冰巨星", realDist: "19.2 AU", period: "84 年", realRadius: "25,362 km", desc: "拥有特殊的“躺平”自转姿态。目前已知拥有 28 颗卫星。",
+                  moons: [{ name: "Titania", nameZh: "天卫三", discoverer: "威廉·赫歇尔 (1787)", rotation: "8.7 天", color: 0xa0a0a0, radius: 2.2, distance: 25, speed: baseSpeed * 8, type: "冰岩卫星", realDist: "435,910 km", period: "8.7 天", realRadius: "788 km", desc: "天王星最大的卫星，表面布满了巨大的峡谷和断层。" }] },
+                { name: "Neptune", nameZh: "海王星", discoverer: "约翰·伽勒等 (1846)", rotation: "16.1 小时", color: 0x3454DF, radius: 14, distance: 820, speed: baseSpeed * 0.006, type: "冰巨星", realDist: "30.1 AU", period: "165 年", realRadius: "24,622 km", desc: "表面风速极快，可达超音速。目前已知拥有 16 颗卫星。",
+                  moons: [{ name: "Triton", nameZh: "海卫一", discoverer: "威廉·拉塞尔 (1846)", rotation: "5.8 天 (逆行)", color: 0xccddcc, radius: 2.5, distance: 28, speed: -baseSpeed * 9, type: "冰壳卫星", realDist: "354,759 km", period: "5.8 天", realRadius: "1,353 km", desc: "太阳系中唯一一颗逆向公转的大卫星，表面有液氮间歇泉，极其寒冷。" }] }
+            ];
+
+            const interactableMeshes = [];
+            const interactableData = [];
+            const orbitMeshes = [];
+            const orbitMaterials = [];
+            const labelElements = [];
+            const moonMeshes = []; // To toggle visibility
+            const moonOrbits = [];
+
+            // --- Advanced Sun Shader (Burning & Sunspots) ---
+            const sunVertexShader = `
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                void main() {
+                    vUv = uv;
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `;
+            const sunFragmentShader = `
+                uniform float time;
+                varying vec2 vUv;
+                varying vec3 vNormal;
+
+                float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+                float noise(vec2 p) {
+                    vec2 i = floor(p); vec2 f = fract(p);
+                    vec2 u = f*f*(3.0-2.0*f);
+                    return mix(mix(hash(i+vec2(0.0,0.0)), hash(i+vec2(1.0,0.0)), u.x),
+                               mix(hash(i+vec2(0.0,1.0)), hash(i+vec2(1.0,1.0)), u.x), u.y);
+                }
+                float fbm(vec2 p) {
+                    float v = 0.0; float a = 0.5;
+                    for(int i=0; i<5; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }
+                    return v;
+                }
+
+                void main() {
+                    // Create flowing noise pattern
+                    vec2 pos = vUv * 8.0 + vec2(time * 0.1, time * 0.15);
+                    float n = fbm(pos);
+                    
+                    // Sunspots and Burning base color
+                    vec3 color = mix(vec3(0.8, 0.2, 0.0), vec3(1.0, 0.9, 0.1), n * 1.5);
+                    
+                    // Add dark sunspots based on noise threshold
+                    if(n < 0.35) {
+                        float spot = smoothstep(0.1, 0.35, n);
+                        color = mix(vec3(0.05, 0.0, 0.0), color, spot);
+                    }
+
+                    // Corona edge glow (Fresnel effect) - FIXED: Prevent negative values in pow()
+                    float viewDot = max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0);
+                    float intensity = pow(1.0 - viewDot, 2.5);
+                    color += vec3(1.0, 0.5, 0.1) * intensity * 1.5;
+
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `;
+            
+            const sunMaterial = new THREE.ShaderMaterial({
+                vertexShader: sunVertexShader,
+                fragmentShader: sunFragmentShader,
+                uniforms: { time: { value: 0.0 } }
+            });
+
+            // --- Solar Wind / Flare Particle System ---
+            const windParticleCount = 800;
+            const windGeo = new THREE.BufferGeometry();
+            const windPos = new Float32Array(windParticleCount * 3);
+            const windVels = [];
+            for(let i=0; i<windParticleCount; i++) {
+                windPos[i*3] = (Math.random() - 0.5) * 80;
+                windPos[i*3+1] = (Math.random() - 0.5) * 80;
+                windPos[i*3+2] = (Math.random() - 0.5) * 80;
+                // Radial velocity
+                const v = new THREE.Vector3(windPos[i*3], windPos[i*3+1], windPos[i*3+2]).normalize().multiplyScalar(Math.random() * 1.5 + 0.5);
+                windVels.push(v);
+            }
+            windGeo.setAttribute('position', new THREE.BufferAttribute(windPos, 3));
+            const windMat = new THREE.PointsMaterial({ color: 0xffaa00, size: 2, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+            const solarWind = new THREE.Points(windGeo, windMat);
+            scene.add(solarWind);
+
+            // --- Asteroid Belt ---
+            const beltGeo = new THREE.BufferGeometry();
+            const beltCount = 3500;
+            const beltPos = new Float32Array(beltCount * 3);
+            const beltColors = new Float32Array(beltCount * 3);
+            for(let i=0; i<beltCount; i++) {
+                // Distributed between Mars(230) and Jupiter(380)
+                const dist = 260 + Math.random() * 90; 
+                const theta = Math.random() * Math.PI * 2;
+                beltPos[i*3] = Math.cos(theta) * dist;
+                beltPos[i*3+1] = (Math.random() - 0.5) * 12; // vertical scatter
+                beltPos[i*3+2] = Math.sin(theta) * dist;
+
+                const c = new THREE.Color().setHSL(0.1, 0.2, Math.random() * 0.4 + 0.1);
+                beltColors[i*3] = c.r; beltColors[i*3+1] = c.g; beltColors[i*3+2] = c.b;
+            }
+            beltGeo.setAttribute('position', new THREE.BufferAttribute(beltPos, 3));
+            beltGeo.setAttribute('color', new THREE.BufferAttribute(beltColors, 3));
+            const beltMat = new THREE.PointsMaterial({ size: 1.5, vertexColors: true, transparent: true, opacity: 0.8 });
+            const asteroidBelt = new THREE.Points(beltGeo, beltMat);
+            scene.add(asteroidBelt);
+
+            // Generate Planets and Moons
+            celestialBodies.forEach((body, index) => {
+                body.angle = Math.random() * Math.PI * 2;
+                
+                if(index === 0) {
+                    followSelect.appendChild(new Option(`跟随 ${body.nameZh} (${body.name})`, index));
+                } else {
+                    followSelect.appendChild(new Option(`跟随 ${body.nameZh} (${body.name})`, index));
+                }
+
+                // Create Label
+                const label = document.createElement('div');
+                label.className = 'planet-label';
+                label.textContent = body.nameZh;
+                labelsContainer.appendChild(label);
+                labelElements.push({ element: label, obj: null }); // Will link to mesh later
+
+                // Mesh
+                const geo = new THREE.SphereGeometry(body.radius, 32, 32);
+                let mat;
+                if(body.glow) {
+                    mat = sunMaterial; // Apply custom shader to Sun
+                } else {
+                    mat = new THREE.MeshStandardMaterial({ color: body.color, roughness: 0.7, metalness: 0.1 });
+                }
+                
+                const mesh = new THREE.Mesh(geo, mat);
+                scene.add(mesh);
+                
+                interactableMeshes.push(mesh);
+                interactableData.push({ body: body, index: index, type: 'planet' });
+                body.mesh = mesh;
+                labelElements[labelElements.length-1].obj = mesh;
+
+                // Planet Orbit
+                if (body.distance > 0) {
+                    const pathGeo = new THREE.RingGeometry(body.distance - 0.5, body.distance + 0.5, 128);
+                    const pathMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.08 });
+                    const pathMesh = new THREE.Mesh(pathGeo, pathMat);
+                    pathMesh.rotation.x = Math.PI / 2;
+                    scene.add(pathMesh);
+                    orbitMeshes.push(pathMesh);
+                    orbitMaterials.push(pathMat);
+                }
+
+                // Planet Rings
+                if (body.hasRings) {
+                    const ringGeo = new THREE.RingGeometry(body.radius * 1.4, body.radius * 2.2, 64);
+                    const ringMat = new THREE.MeshBasicMaterial({ color: body.color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+                    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                    ringMesh.rotation.x = Math.PI / 2 + 0.2;
+                    mesh.add(ringMesh);
+                }
+
+                // Create Moons if they exist
+                if (body.moons && body.moons.length > 0) {
+                    body.moons.forEach((moon, mIdx) => {
+                        moon.angle = Math.random() * Math.PI * 2;
+                        
+                        const mGeo = new THREE.SphereGeometry(moon.radius, 16, 16);
+                        const mMat = new THREE.MeshStandardMaterial({ color: moon.color, roughness: 0.9 });
+                        const mMesh = new THREE.Mesh(mGeo, mMat);
+                        scene.add(mMesh);
+                        
+                        interactableMeshes.push(mMesh);
+                        interactableData.push({ body: moon, index: `${index}_${mIdx}`, type: 'moon', parentBody: body });
+                        moon.mesh = mMesh;
+                        moonMeshes.push(mMesh);
+
+                        // Moon Orbit Path (Visual)
+                        const mPathGeo = new THREE.RingGeometry(moon.distance - 0.2, moon.distance + 0.2, 64);
+                        const mPathMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.04 });
+                        const mPathMesh = new THREE.Mesh(mPathGeo, mPathMat);
+                        mPathMesh.rotation.x = Math.PI / 2;
+                        scene.add(mPathMesh);
+                        orbitMeshes.push(mPathMesh);
+                        moonOrbits.push(mPathMesh);
+                        moon.orbitMesh = mPathMesh;
+
+                        // Moon Label
+                        const mLabel = document.createElement('div');
+                        mLabel.className = 'planet-label text-[10px] text-gray-400';
+                        mLabel.textContent = moon.nameZh;
+                        labelsContainer.appendChild(mLabel);
+                        labelElements.push({ element: mLabel, obj: mMesh, isMoon: true });
+                    });
+                }
+            });
+
+            // Highlight ring
+            const highlightGeo = new THREE.TorusGeometry(1, 0.1, 16, 64);
+            const highlightMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            const highlightMesh = new THREE.Mesh(highlightGeo, highlightMat);
+            scene.add(highlightMesh);
+            highlightMesh.visible = false;
+
+            // --- 3D Starfield ---
+            const starGeo = new THREE.BufferGeometry();
+            const starCount = 3000;
+            const starPos = new Float32Array(starCount * 3);
+            for(let i = 0; i < starCount * 3; i += 3) {
+                starPos[i] = (Math.random() - 0.5) * 8000;
+                starPos[i+1] = (Math.random() - 0.5) * 8000;
+                starPos[i+2] = (Math.random() - 0.5) * 8000;
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 2, transparent: true, opacity: 0.8 });
+            const stars = new THREE.Points(starGeo, starMat);
+            scene.add(stars);
+
+            // --- Raycaster ---
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            let dragTimer;
+            let isDragging = false;
+            let hoveredDataIndex = null;
+
+            canvas.addEventListener('mousemove', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                
+                // Only raycast visible meshes
+                const checkMeshes = interactableMeshes.filter(m => m.visible);
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(checkMeshes);
+
+                if (intersects.length > 0) {
+                    canvas.style.cursor = 'pointer';
+                    const hit = intersects[0].object;
+                    let meshIndex = interactableMeshes.indexOf(hit);
+                    if (meshIndex === -1 && hit.parent) meshIndex = interactableMeshes.indexOf(hit.parent);
+                    
+                    if (meshIndex !== -1 && meshIndex !== hoveredDataIndex) {
+                        hoveredDataIndex = meshIndex;
+                        const d = interactableData[meshIndex];
+                        
+                        document.getElementById('ttNameZh').textContent = d.body.nameZh;
+                        document.getElementById('ttNameEn').textContent = d.body.name;
+                        document.getElementById('ttDiscoverer').textContent = d.body.discoverer;
+                        document.getElementById('ttDist').textContent = d.body.realDist;
+                        document.getElementById('ttSize').textContent = d.body.realRadius;
+                        document.getElementById('ttRotation').textContent = d.body.rotation;
+                        document.getElementById('ttOrbit').textContent = d.body.period;
+                        
+                        hoverTooltip.classList.remove('hidden');
+                    }
+                    
+                    if (hoveredDataIndex !== null) {
+                        const ttWidth = 260;
+                        const ttHeight = 160;
+                        let x = e.clientX + 15;
+                        let y = e.clientY + 15;
+                        if (x + ttWidth > window.innerWidth) x = e.clientX - ttWidth - 10;
+                        if (y + ttHeight > window.innerHeight) y = e.clientY - ttHeight - 10;
+                        hoverTooltip.style.left = `${x}px`;
+                        hoverTooltip.style.top = `${y}px`;
+                    }
+                } else {
+                    canvas.style.cursor = 'default';
+                    hoverTooltip.classList.add('hidden');
+                    hoveredDataIndex = null;
+                }
+            });
+
+            canvas.addEventListener('mousedown', () => { 
+                isDragging = false; 
+                dragTimer = setTimeout(() => isDragging = true, 200); 
+            });
+            
+            canvas.addEventListener('mouseup', (e) => {
+                clearTimeout(dragTimer);
+                if (isDragging) return;
+
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                
+                const checkMeshes = interactableMeshes.filter(m => m.visible);
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(checkMeshes);
+
+                if (intersects.length > 0) {
+                    const hit = intersects[0].object;
+                    let meshIndex = interactableMeshes.indexOf(hit);
+                    if (meshIndex === -1 && hit.parent) meshIndex = interactableMeshes.indexOf(hit.parent);
+                    if (meshIndex !== -1) selectPlanet(interactableData[meshIndex]);
+                } else {
+                    infoPanel.classList.add('hidden');
+                    selectedMesh = null;
+                }
+            });
+
+            function selectPlanet(dataObj) {
+                selectedMesh = dataObj.body.mesh;
+                const body = dataObj.body;
+                
+                pName.textContent = body.nameZh;
+                
+                if(dataObj.type === 'moon') {
+                    pTagline.textContent = `${dataObj.parentBody.nameZh} 的卫星 - ${body.name}`;
+                    pType.textContent = body.type;
+                } else {
+                    pTagline.textContent = `${body.name} - 距太阳第 ${dataObj.index === 0 ? '0' : dataObj.index} 颗星体`;
+                    pType.textContent = body.type;
+                }
+                
+                pDist.textContent = body.realDist;
+                pPeriod.textContent = body.period;
+                pRadius.textContent = body.realRadius;
+                pDesc.textContent = body.desc;
+
+                infoPanel.classList.remove('hidden');
+                
+                // Auto focus camera logic for moons too (Optional, currently uses parent index)
+                if(dataObj.type === 'planet') {
+                    followingPlanetIndex = dataObj.index;
+                    followSelect.value = dataObj.index;
+                }
+            }
+
+            // --- UI Events ---
+            playPauseBtn.addEventListener('click', () => {
+                isPaused = !isPaused;
+                const icon = playPauseBtn.querySelector('i');
+                if (isPaused) {
+                    icon.classList.remove('fa-pause'); icon.classList.add('fa-play');
+                    playPauseBtn.classList.replace('bg-sky-500', 'bg-gray-600');
+                } else {
+                    icon.classList.remove('fa-play'); icon.classList.add('fa-pause');
+                    playPauseBtn.classList.replace('bg-gray-600', 'bg-sky-500');
+                }
+            });
+
+            speedSlider.addEventListener('input', (e) => {
+                timeScale = parseFloat(e.target.value);
+                speedValue.textContent = timeScale.toFixed(1) + 'x';
+            });
+
+            zoomSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                camera.zoom = val;
+                camera.updateProjectionMatrix();
+                zoomValue.textContent = val.toFixed(1) + 'x';
+            });
+
+            followSelect.addEventListener('change', (e) => {
+                followingPlanetIndex = parseInt(e.target.value);
+            });
+
+            closeInfoBtn.addEventListener('click', () => {
+                infoPanel.classList.add('hidden');
+                selectedMesh = null;
+            });
+
+            showOrbitsBtn.addEventListener('change', (e) => {
+                const show = e.target.checked;
+                orbitMeshes.forEach(mesh => {
+                    // Do not show moon orbits if moons are hidden entirely
+                    if(!showMoonsBtn.checked && moonOrbits.includes(mesh)) return;
+                    mesh.visible = show;
+                });
+            });
+
+            showLabelsBtn.addEventListener('change', (e) => {
+                labelsContainer.style.display = e.target.checked ? 'block' : 'none';
+            });
+
+            showMoonsBtn.addEventListener('change', (e) => {
+                const show = e.target.checked;
+                moonMeshes.forEach(mesh => mesh.visible = show);
+                moonOrbits.forEach(mesh => mesh.visible = (show && showOrbitsBtn.checked));
+                labelElements.forEach(le => {
+                    if(le.isMoon) le.element.style.display = show ? 'block' : 'none';
+                });
+            });
+
+            orbitColorPicker.addEventListener('input', (e) => {
+                const color = new THREE.Color(e.target.value);
+                orbitMaterials.forEach(mat => mat.color = color);
+            });
+
+            orbitOpacitySlider.addEventListener('input', (e) => {
+                const opacity = parseFloat(e.target.value);
+                orbitMaterials.forEach(mat => mat.opacity = opacity);
+            });
+
+            // --- Animation Loop ---
+            function animate() {
+                requestAnimationFrame(animate);
+
+                // Update Sun Shader Time
+                if(!isPaused) {
+                    uniformTime += 0.05 * timeScale;
+                    sunMaterial.uniforms.time.value = uniformTime;
+                }
+
+                // Update Solar Wind Particles
+                if(!isPaused) {
+                    const positions = solarWind.geometry.attributes.position.array;
+                    for(let i=0; i<windParticleCount; i++) {
+                        positions[i*3] += windVels[i].x * timeScale;
+                        positions[i*3+1] += windVels[i].y * timeScale;
+                        positions[i*3+2] += windVels[i].z * timeScale;
+                        
+                        // Reset particle if it goes too far
+                        if(Math.abs(positions[i*3]) > 200 || Math.abs(positions[i*3+1]) > 200) {
+                            positions[i*3] = (Math.random() - 0.5) * 40;
+                            positions[i*3+1] = (Math.random() - 0.5) * 40;
+                            positions[i*3+2] = (Math.random() - 0.5) * 40;
+                        }
+                    }
+                    solarWind.geometry.attributes.position.needsUpdate = true;
+                    
+                    // Slowly rotate Asteroid Belt
+                    asteroidBelt.rotation.y -= 0.0005 * timeScale;
+                }
+
+                // Update Planets & Moons
+                celestialBodies.forEach((body, index) => {
+                    if (index !== 0) {
+                        if (!isPaused) body.angle -= body.speed * timeScale;
+                        
+                        body.mesh.position.x = Math.cos(body.angle) * body.distance;
+                        body.mesh.position.z = Math.sin(body.angle) * body.distance;
+                        if (!isPaused) body.mesh.rotation.y += 0.01 * timeScale; 
+                        
+                        // Update Moons for this planet
+                        if(body.moons) {
+                            body.moons.forEach(moon => {
+                                if(!isPaused) moon.angle -= moon.speed * timeScale;
+                                
+                                // Moon position relative to Planet
+                                moon.mesh.position.x = body.mesh.position.x + Math.cos(moon.angle) * moon.distance;
+                                moon.mesh.position.z = body.mesh.position.z + Math.sin(moon.angle) * moon.distance;
+                                moon.mesh.position.y = Math.sin(moon.angle) * (moon.distance * 0.1); // Slight orbital tilt
+                                
+                                if(!isPaused) moon.mesh.rotation.y += 0.02 * timeScale;
+
+                                // Sync Orbit Path visual with Planet
+                                moon.orbitMesh.position.copy(body.mesh.position);
+                            });
+                        }
+                    }
+                });
+
+                // Update Labels position
+                if (showLabelsBtn.checked) {
+                    labelElements.forEach(item => {
+                        if(!item.obj || !item.obj.visible) {
+                            item.element.style.opacity = 0;
+                            return;
+                        }
+                        const vector = item.obj.position.clone();
+                        vector.project(camera);
+                        
+                        if (vector.z > 1) {
+                            item.element.style.opacity = 0;
+                        } else {
+                            const x = (vector.x * .5 + .5) * window.innerWidth;
+                            const y = -(vector.y * .5 - .5) * window.innerHeight;
+                            item.element.style.left = `${x}px`;
+                            item.element.style.top = `${y}px`;
+                            item.element.style.opacity = 1;
+                        }
+                    });
+                }
+
+                // Update Camera Tracking Target
+                if (followingPlanetIndex !== -1 && celestialBodies[followingPlanetIndex]) {
+                    const targetPos = celestialBodies[followingPlanetIndex].mesh.position;
+                    controls.target.lerp(targetPos, 0.05);
+                } else {
+                    controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
+                }
+
+                // Update Highlight indicator
+                if (selectedMesh) {
+                    highlightMesh.visible = true;
+                    highlightMesh.position.copy(selectedMesh.position);
+                    highlightMesh.scale.setScalar(selectedMesh.geometry.parameters.radius + 8);
+                    highlightMesh.lookAt(camera.position);
+                } else {
+                    highlightMesh.visible = false;
+                }
+
+                controls.update();
+                renderer.render(scene, camera);
+            }
+
+            animate();
+        };
+    </script>
+</body>
+</html>
