@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情感共振 - 心情示波器 Sandbox</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        .font-mono-sci {
+            font-family: 'Share Tech Mono', monospace, sans-serif;
+        }
+        /* 霓虹发光与CRT微弱扫描线效果 */
+        .neon-glow-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+        .crt-scanlines {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+        }
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans overflow-x-hidden select-none">
+
+    <!-- 顶栏：系统指标 -->
+    <header class="w-full border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md px-6 py-3.5 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-cyan-500/10">
+                <i data-lucide="activity" class="w-5 h-5 text-white animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 font-mono-sci">EMOTION OSCILLOSCOPE</h1>
+                <p class="text-[10px] text-slate-400 tracking-widest">量子情绪共振物理实验室 v1.4.2</p>
+            </div>
+        </div>
+
+        <!-- 实时环境状态指示器 -->
+        <div class="flex items-center space-x-6 text-xs font-mono-sci text-slate-400">
+            <div class="hidden md:flex flex-col items-end">
+                <span class="text-slate-500 text-[9px] uppercase">心灵熵率 ENTROPY</span>
+                <span id="data-entropy" class="text-cyan-400 font-bold">14.25 %</span>
+            </div>
+            <div class="hidden md:flex flex-col items-end">
+                <span class="text-slate-500 text-[9px] uppercase">主波频率 FREQUENCY</span>
+                <span id="data-frequency" class="text-emerald-400 font-bold">60.00 Hz</span>
+            </div>
+            <!-- 音频合成控制 -->
+            <button id="btn-audio-toggle" class="flex items-center space-x-2 px-3 py-1.5 rounded-full border border-slate-700 hover:border-cyan-500/50 bg-slate-900/60 transition-all active:scale-95 text-slate-300">
+                <i id="icon-audio" data-lucide="volume-x" class="w-4 h-4 text-rose-500"></i>
+                <span id="text-audio" class="text-[11px] font-bold">合成器: 已静音</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主操作区 -->
+    <main class="w-full max-w-7xl mx-auto px-4 py-4 md:py-6 flex flex-col lg:flex-row gap-6 flex-grow items-stretch">
+        
+        <!-- 左侧：示波器核心荧幕 -->
+        <div class="flex-grow lg:w-2/3 flex flex-col justify-between bg-slate-900/40 rounded-3xl p-4 border border-slate-800 relative shadow-2xl overflow-hidden backdrop-blur-sm">
+            
+            <!-- CRT屏幕边框与阴影效果 -->
+            <div class="relative w-full flex-grow bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col min-h-[350px] md:min-h-[460px] shadow-inner">
+                <!-- 内部扫描线及虚化背景网格 -->
+                <div class="absolute inset-0 crt-scanlines pointer-events-none z-20"></div>
+                <!-- 科技网格背景 -->
+                <div class="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:40px_40px] opacity-35 pointer-events-none"></div>
+                
+                <!-- 绘图画布 -->
+                <canvas id="scope-canvas" class="relative z-10 w-full h-full block cursor-crosshair"></canvas>
+                
+                <!-- 荧幕左上角：实时的情绪状态水印 -->
+                <div class="absolute top-4 left-4 z-30 font-mono-sci text-xs space-y-1 pointer-events-none select-none bg-slate-950/80 p-3 rounded-xl border border-slate-800/60 backdrop-blur-md">
+                    <div class="flex items-center space-x-2 text-slate-400">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span class="text-[10px]">OSCILLOSCOPE FEED</span>
+                    </div>
+                    <div class="text-sm font-bold tracking-wide flex items-center space-x-1.5" id="lbl-mood-name">
+                        <span class="text-slate-300">当前心灵基调:</span>
+                        <span class="text-cyan-400" id="val-mood-chinese">平静 (Calm)</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 flex flex-col space-y-0.5">
+                        <span>量子合成比: <span id="val-mood-blend" class="text-indigo-400">100% 独奏</span></span>
+                        <span>信号偏置: <span id="val-bias" class="text-slate-400">Vpp = 2.4V</span></span>
+                    </div>
+                </div>
+
+                <!-- 荧幕右上角：科学示波器动态仪表盘 -->
+                <div class="absolute top-4 right-4 z-30 font-mono-sci text-[10px] space-y-1 text-slate-400 text-right pointer-events-none select-none hidden sm:block bg-slate-950/80 p-3 rounded-xl border border-slate-800/60 backdrop-blur-md">
+                    <div>CH1 <span class="text-cyan-400">100mV/Div</span></div>
+                    <div>TIME <span class="text-yellow-400">2.5ms/Div</span></div>
+                    <div>TRIGGER <span class="text-emerald-400">AUTO</span></div>
+                    <div class="text-[9px] text-slate-500 mt-1">NOISE REDUCTION [ON]</div>
+                </div>
+
+                <!-- Canvas内弹框通知（如保存截图、清空等） -->
+                <div id="screen-toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 transform scale-0 transition-transform duration-300 bg-slate-900/90 text-cyan-400 border border-cyan-500/30 text-xs font-mono-sci px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 pointer-events-none">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-cyan-400"></i>
+                    <span id="screen-toast-text">SCREENSHOT CAPTURED</span>
+                </div>
+            </div>
+
+            <!-- 下方快捷微调器 -->
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-4 bg-slate-900/20 p-3 rounded-2xl border border-slate-800/50">
+                <!-- 预设视觉模式 -->
+                <div class="flex items-center space-x-1">
+                    <span class="text-xs text-slate-400 mr-2">可视化终端:</span>
+                    <button data-mode="wave" class="btn-mode px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 transition-all flex items-center space-x-1">
+                        <i data-lucide="split" class="w-3.5 h-3.5"></i>
+                        <span>模拟示波</span>
+                    </button>
+                    <button data-mode="bar" class="btn-mode px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all flex items-center space-x-1">
+                        <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i>
+                        <span>频谱立体柱</span>
+                    </button>
+                    <button data-mode="particle" class="btn-mode px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all flex items-center space-x-1">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span>量子粒子风暴</span>
+                    </button>
+                    <button data-mode="radial" class="btn-mode px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all flex items-center space-x-1">
+                        <i data-lucide="orbit" class="w-3.5 h-3.5"></i>
+                        <span>共振圆环</span>
+                    </button>
+                </div>
+
+                <!-- 截图和重置 -->
+                <div class="flex items-center space-x-2">
+                    <button id="btn-screenshot" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 active:scale-95 transition-all" title="捕捉波动快照">
+                        <i data-lucide="camera" class="w-4 h-4 text-cyan-400"></i>
+                    </button>
+                    <button id="btn-toggle-demo" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 rounded-lg border border-slate-700 active:scale-95 transition-all flex items-center space-x-1">
+                        <i data-lucide="play" class="w-3.5 h-3.5 text-yellow-400"></i>
+                        <span>心境慢放演示</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：控制中心 & 情感调谐 -->
+        <div class="lg:w-1/3 flex flex-col gap-6">
+            
+            <!-- A. 情感混合输入面板 -->
+            <div class="bg-gradient-to-br from-slate-900 to-slate-950 p-5 rounded-3xl border border-slate-800 shadow-xl flex flex-col">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="text-cursor-input" class="w-5 h-5 text-cyan-400"></i>
+                        <h2 class="font-bold text-slate-200">输入当前心情或文段</h2>
+                    </div>
+                    <span class="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full font-mono-sci">NLP ANALYZER</span>
+                </div>
+                
+                <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+                    在下方输入您当下的心情。系统将智能识别**开心、痛苦、平静、惊讶、恐惧、愤怒、爱**等情绪并混合成对应的复合量子波：
+                </p>
+                
+                <!-- 文本分析区 -->
+                <div class="relative mb-4">
+                    <textarea id="txt-mood-input" class="w-full h-24 p-3 bg-slate-950 border border-slate-800 focus:border-cyan-500/50 rounded-xl text-slate-100 text-xs placeholder-slate-600 focus:outline-none transition-all resize-none" placeholder="例如：我今天太开心了，不过也有点难受，脑子乱糟糟的..."></textarea>
+                    <button id="btn-clear-input" class="absolute bottom-2.5 right-2.5 text-slate-500 hover:text-slate-300 transition-all">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- 快速心情触击板 -->
+                <span class="text-[10px] text-slate-500 mb-2 font-mono-sci uppercase">或直接点击单个情绪源共振:</span>
+                <div class="grid grid-cols-4 gap-1.5" id="presets-container">
+                    <!-- 心情微型触发器，由JS动态渲染 -->
+                </div>
+            </div>
+
+            <!-- B. 示波器参数微调面板 -->
+            <div class="bg-slate-900/60 p-5 rounded-3xl border border-slate-800 shadow-xl">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-yellow-400"></i>
+                        <h2 class="font-bold text-slate-200">波束精细微调</h2>
+                    </div>
+                    <button id="btn-reset-sliders" class="text-[10px] text-slate-500 hover:text-slate-300 font-mono-sci">RESET</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- 1. 信号放大率 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400 flex items-center">
+                                <i data-lucide="scaling" class="w-3.5 h-3.5 mr-1 text-pink-400"></i>
+                                信号振幅 (Amplitude / 心情强烈度)
+                            </span>
+                            <span class="font-mono-sci text-pink-400" id="lbl-slide-amp">1.0x</span>
+                        </div>
+                        <input type="range" id="slide-amp" min="0.1" max="2.5" step="0.05" value="1.0" class="w-full accent-pink-500 bg-slate-950 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 2. 扫描频率 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400 flex items-center">
+                                <i data-lucide="gauge" class="w-3.5 h-3.5 mr-1 text-cyan-400"></i>
+                                扫描频率 (Frequency / 心情波动频率)
+                            </span>
+                            <span class="font-mono-sci text-cyan-400" id="lbl-slide-freq">1.0x</span>
+                        </div>
+                        <input type="range" id="slide-freq" min="0.2" max="3.0" step="0.05" value="1.0" class="w-full accent-cyan-500 bg-slate-950 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- 3. 时间流速 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400 flex items-center">
+                                <i data-lucide="timer" class="w-3.5 h-3.5 mr-1 text-emerald-400"></i>
+                                时基流速 (Speed / 情感流逝速率)
+                            </span>
+                            <span class="font-mono-sci text-emerald-400" id="lbl-slide-speed">1.0x</span>
+                        </div>
+                        <input type="range" id="slide-speed" min="0.1" max="2.5" step="0.05" value="1.0" class="w-full accent-emerald-500 bg-slate-950 h-1.5 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- C. 量子心灵状态监控仪表 -->
+            <div class="bg-slate-900/60 p-5 rounded-3xl border border-slate-800 shadow-xl flex-grow flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 mb-3 border-b border-slate-800 pb-2">
+                        <i data-lucide="heart-handshake" class="w-5 h-5 text-emerald-400"></i>
+                        <h2 class="font-bold text-slate-200">科学读数/情感共振谱</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-xs font-mono-sci">
+                        <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/40">
+                            <div class="text-slate-500 text-[9px] uppercase">当前色度 HUE</div>
+                            <div id="gauge-color" class="text-white font-bold mt-1 text-sm flex items-center space-x-1.5">
+                                <span class="w-3.5 h-3.5 rounded-md inline-block shadow-inner" style="background-color: #06b6d4;"></span>
+                                <span id="gauge-color-hex">#06B6D4</span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/40">
+                            <div class="text-slate-500 text-[9px] uppercase">波动相差 PHASE</div>
+                            <div id="gauge-phase" class="text-yellow-400 font-bold mt-1 text-sm">Φ = 1.05 rad</div>
+                        </div>
+                        <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/40">
+                            <div class="text-slate-500 text-[9px] uppercase">平均阻尼 DAMPING</div>
+                            <div id="gauge-damping" class="text-pink-400 font-bold mt-1 text-sm">μ = 0.041</div>
+                        </div>
+                        <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/40">
+                            <div class="text-slate-500 text-[9px] uppercase">心灵秩序 ORDER</div>
+                            <div id="gauge-order" class="text-emerald-400 font-bold mt-1 text-sm">高阶谐振</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 量子共鸣状态栏 -->
+                <div class="mt-4 bg-slate-950 p-3 rounded-2xl border border-slate-800/60 flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-2 text-slate-400">
+                        <i data-lucide="radio" class="w-4 h-4 text-cyan-400 animate-pulse"></i>
+                        <span>共振器状态:</span>
+                    </div>
+                    <span id="lbl-oscillator-state" class="text-emerald-400 font-bold animate-pulse">正常加载 · COHERENT</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 底部状态栏 -->
+    <footer class="w-full py-4 text-center text-xs text-slate-600 border-t border-slate-900 bg-slate-950 mt-6">
+        <p>© 2026 情感共振物理实验室 - 量子波动方程视觉艺术装置</p>
+    </footer>
+
+    <!-- 脚本逻辑 -->
+    <script>
+        // 初始化 Lucide 图标库
+        lucide.createIcons();
+
+        // ==========================================
+        // 1. 情绪特征物理/视觉参数定义 (情绪数据库)
+        // ==========================================
+        const MOODS = {
+            calm: {
+                name: "平静",
+                en: "Calm",
+                color: "#06b6d4", // 靛蓝/青色
+                secColor: "#1e1b4b",
+                freq: 1.0,      // 基本频率
+                amp: 0.4,       // 振幅
+                entropy: 0.05,  // 噪声抖动率 (混乱度)
+                soundFreq: 136.1, // 深度冥想宇宙音 (Hz)
+                soundType: "sine",
+                damping: 0.01,
+                order: "高阶秩序"
+            },
+            happy: {
+                name: "开心",
+                en: "Happy",
+                color: "#eab308", // 金黄/黄色
+                secColor: "#b45309",
+                freq: 2.2,
+                amp: 0.9,
+                entropy: 0.25,
+                soundFreq: 329.6, // E4 升华快乐音 (Hz)
+                soundType: "triangle",
+                damping: 0.05,
+                order: "活跃振子"
+            },
+            pain: {
+                name: "痛苦",
+                en: "Pain",
+                color: "#8b5cf6", // 紫红/靛紫
+                secColor: "#701a75",
+                freq: 1.5,
+                amp: 1.2,
+                entropy: 0.85,  // 高噪声
+                soundFreq: 180.0, // 刺耳撕裂音 (Hz)
+                soundType: "sawtooth",
+                damping: 0.15,
+                order: "混沌扩散"
+            },
+            anger: {
+                name: "愤怒",
+                en: "Anger",
+                color: "#ef4444", // 火烈红
+                secColor: "#450a0a",
+                freq: 2.8,
+                amp: 1.8,
+                entropy: 0.95,
+                soundFreq: 85.0,  // 压抑咆哮低频 (Hz)
+                soundType: "square",
+                damping: 0.25,
+                order: "超临界冲击"
+            },
+            surprise: {
+                name: "惊讶",
+                en: "Surprise",
+                color: "#3b82f6", // 电光蓝
+                secColor: "#1d4ed8",
+                freq: 3.5,
+                amp: 1.6,
+                entropy: 0.45,
+                soundFreq: 440.0, // A4 瞬时电击声 (Hz)
+                soundType: "triangle",
+                damping: 0.02,
+                order: "阶跃过冲"
+            },
+            fear: {
+                name: "恐惧",
+                en: "Fear",
+                color: "#10b981", // 荧光绿/灰冷
+                secColor: "#022c22",
+                freq: 4.8,
+                amp: 0.3,       // 低幅极颤
+                entropy: 0.80,
+                soundFreq: 290.0, // 悚人尖啸
+                soundType: "sawtooth",
+                damping: 0.35,
+                order: "高熵布朗振动"
+            },
+            delight: {
+                name: "惊喜",
+                en: "Delight",
+                color: "#f43f5e", // 浪漫蔷薇红
+                secColor: "#881337",
+                freq: 1.9,
+                amp: 1.5,
+                entropy: 0.3,
+                soundFreq: 523.25, // 高八度 C5
+                soundType: "sine",
+                damping: 0.08,
+                order: "极谐波泛音"
+            },
+            love: {
+                name: "心动",
+                en: "Love",
+                color: "#f472b6", // 温暖粉红
+                secColor: "#db2777",
+                freq: 1.2,
+                amp: 1.0,
+                entropy: 0.15,
+                soundFreq: 221.23, // 舒适谐振频率 (Hz)
+                soundType: "sine",
+                damping: 0.02,
+                order: "相干耦合"
+            }
+        };
+
+        // NLP 情感识别词典 (匹配词根)
+        const DICTIONARY = {
+            happy: ["开心", "快乐", "喜悦", "爽", "嗨", "棒", "狂喜", "高歌", "好玩", "微笑", "笑", "高兴", "顺心"],
+            calm: ["平静", "安宁", "舒适", "静下心", "默默", "温和", "柔和", "佛系", "无所谓", "静", "放松", "宁静", "淡定"],
+            pain: ["痛苦", "难受", "悲伤", "哭", "惨", "郁闷", "悲哀", "绝望", "难过", "心碎", "不开心", "委屈"],
+            anger: ["愤怒", "生气", "暴躁", "滚", "气死了", "火大", "操", "发怒", "抓狂", "不爽", "恼怒", "砸"],
+            surprise: ["惊讶", "惊奇", "天哪", "万分震惊", "震惊", "晕", "不可思议", "吓一跳", "居然"],
+            fear: ["恐惧", "害怕", "紧张", "吓", "焦虑", "恐慌", "悚", "毛骨悚然", "不安", "吓尿", "抖"],
+            delight: ["惊喜", "太棒了", "赞", "狂欢", "捡到宝", "幸运", "狂喜", "天助我也"],
+            love: ["爱", "喜欢", "心动", "温柔", "温馨", "浪漫", "情", "牵手", "亲", "蜜甜", "萌"]
+        };
+
+        // 当前融合的心灵基调状态
+        let currentBlend = {
+            activeMoods: { calm: 1.0 }, // 默认100%平静
+            renderedColor: MOODS.calm.color,
+            amp: MOODS.calm.amp,
+            freq: MOODS.calm.freq,
+            entropy: MOODS.calm.entropy,
+            damping: MOODS.calm.damping,
+            soundFreq: MOODS.calm.soundFreq,
+            soundType: MOODS.calm.soundType,
+            order: MOODS.calm.order
+        };
+
+        // 视窗渲染模式: 'wave' (模拟示波), 'bar' (频谱), 'particle' (粒子), 'radial' (圆环)
+        let visualMode = 'wave';
+        let demoModeActive = false;
+        let demoTimer = 0;
+
+        // UI 调节系数
+        let ctrlAmp = 1.0;
+        let ctrlFreq = 1.0;
+        let ctrlSpeed = 1.0;
+
+        // Canvas 初始化
+        const canvas = document.getElementById('scope-canvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = canvas.parentElement.clientWidth;
+        let height = canvas.height = canvas.parentElement.clientHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = canvas.parentElement.clientWidth;
+            height = canvas.height = canvas.parentElement.clientHeight;
+        });
+
+        // 粒子容器
+        let particles = [];
+        const MAX_PARTICLES = 160;
+
+        // ==========================================
+        // 2. WEB AUDIO API 声音合成引擎
+        // ==========================================
+        let audioCtx = null;
+        let mainOsc = null;
+        let subOsc = null;
+        let mainGain = null;
+        let isMuted = true;
+        let targetSoundFreq = 136.1;
+
+        function initAudio() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // 1. 创建振荡器
+                mainOsc = audioCtx.createOscillator();
+                subOsc = audioCtx.createOscillator();
+                
+                // 2. 创建增益节点 (音量控制器)
+                mainGain = audioCtx.createGain();
+                mainGain.gain.setValueAtTime(0.0, audioCtx.currentTime); // 默认无声
+
+                // 3. 连接节点
+                mainOsc.connect(mainGain);
+                subOsc.connect(mainGain);
+                mainGain.connect(audioCtx.destination);
+
+                // 4. 配置基频
+                mainOsc.type = currentBlend.soundType;
+                mainOsc.frequency.setValueAtTime(currentBlend.soundFreq, audioCtx.currentTime);
+                
+                // 副振荡器形成立体声音偏，略微调谐（合成双耳节律差，营造舒缓/紧张感）
+                subOsc.type = 'sine';
+                subOsc.frequency.setValueAtTime(currentBlend.soundFreq * 0.995, audioCtx.currentTime);
+
+                mainOsc.start();
+                subOsc.start();
+            } catch (e) {
+                console.warn("Web Audio API 未被当前浏览器完全支持: ", e);
+            }
+        }
+
+        function updateSynthesizerPitch() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            // 平滑滤波渐变，防止频率突变产生“啪嗒”杂音
+            targetSoundFreq = currentBlend.soundFreq * ctrlFreq;
+            mainOsc.type = currentBlend.soundType;
+            mainOsc.frequency.setTargetAtTime(targetSoundFreq, now, 0.15);
+            subOsc.frequency.setTargetAtTime(targetSoundFreq * 0.995, now, 0.15);
+
+            if (!isMuted) {
+                // 音量大小随振幅同步起伏
+                const volume = Math.min(0.08, currentBlend.amp * ctrlAmp * 0.04);
+                mainGain.gain.setTargetAtTime(volume, now, 0.1);
+            }
+        }
+
+        // ==========================================
+        // 3. 情绪混合算法 (Core Logic)
+        // ==========================================
+        function analyzeSentiment(text) {
+            if (!text.trim()) {
+                // 恢复纯平静状态
+                blendMoods({ calm: 1.0 });
+                return;
+            }
+
+            const matchedWeights = {};
+            let totalMatchCount = 0;
+
+            // 扫描分词库
+            for (let moodKey in DICTIONARY) {
+                const keywords = DICTIONARY[moodKey];
+                let count = 0;
+                keywords.forEach(word => {
+                    let index = -1;
+                    while ((index = text.indexOf(word, index + 1)) !== -1) {
+                        count++;
+                    }
+                });
+                
+                if (count > 0) {
+                    matchedWeights[moodKey] = count;
+                    totalMatchCount += count;
+                }
+            }
+
+            // 归一化权重
+            if (totalMatchCount > 0) {
+                const finalBlend = {};
+                for (let key in matchedWeights) {
+                    finalBlend[key] = matchedWeights[key] / totalMatchCount;
+                }
+                blendMoods(finalBlend);
+            } else {
+                // 没有匹配到，进入“探索神秘/好奇”波动 (平静0.3+惊讶0.7混合)
+                blendMoods({ calm: 0.3, surprise: 0.7 });
+            }
+        }
+
+        function blendMoods(weights) {
+            // 参数混合重置
+            let r = 0, g = 0, b = 0;
+            let finalAmp = 0;
+            let finalFreq = 0;
+            let finalEntropy = 0;
+            let finalDamping = 0;
+            let finalSoundFreq = 0;
+            
+            // 找出比重最大的一种情绪作为核心基调
+            let dominantMood = 'calm';
+            let maxWeight = 0;
+
+            for (let moodKey in weights) {
+                const weight = weights[moodKey];
+                const spec = MOODS[moodKey];
+                if (!spec) continue;
+
+                // 累加颜色值
+                const rgb = hexToRgb(spec.color);
+                r += rgb.r * weight;
+                g += rgb.g * weight;
+                b += rgb.b * weight;
+
+                // 物理参数按比重加权混合
+                finalAmp += spec.amp * weight;
+                finalFreq += spec.freq * weight;
+                finalEntropy += spec.entropy * weight;
+                finalDamping += spec.damping * weight;
+                finalSoundFreq += spec.soundFreq * weight;
+
+                if (weight > maxWeight) {
+                    maxWeight = weight;
+                    dominantMood = moodKey;
+                }
+            }
+
+            // 计算融合色 Hex
+            const blendedHex = rgbToHex(Math.round(r), Math.round(g), Math.round(b));
+
+            // 更新当前混合包
+            currentBlend.activeMoods = weights;
+            currentBlend.renderedColor = blendedHex;
+            currentBlend.amp = finalAmp;
+            currentBlend.freq = finalFreq;
+            currentBlend.entropy = finalEntropy;
+            currentBlend.damping = finalDamping;
+            currentBlend.soundFreq = finalSoundFreq;
+            currentBlend.soundType = MOODS[dominantMood].soundType;
+            currentBlend.order = MOODS[dominantMood].order;
+
+            // 渲染至 UI 面板
+            updateSentimentUI(dominantMood, weights);
+            updateSynthesizerPitch();
+        }
+
+        // 颜色转换辅助
+        function hexToRgb(hex) {
+            const bigint = parseInt(hex.slice(1), 16);
+            return {
+                r: (bigint >> 16) & 255,
+                g: (bigint >> 8) & 255,
+                b: bigint & 255
+            };
+        }
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        // 更新 UI
+        function updateSentimentUI(dominantKey, weights) {
+            const isBlend = Object.keys(weights).length > 1;
+            
+            // 1. 中文标签
+            const mainMood = MOODS[dominantKey];
+            document.getElementById('val-mood-chinese').innerHTML = `
+                <span class="px-2 py-0.5 rounded" style="background-color: ${mainMood.color}33; color: ${mainMood.color}">
+                    ${mainMood.name} (${mainMood.en})
+                </span>
+            `;
+
+            // 2. 混合配比描述
+            let blendDesc = "";
+            if (isBlend) {
+                const parts = [];
+                for (let k in weights) {
+                    parts.push(`${MOODS[k].name}${Math.round(weights[k]*100)}%`);
+                }
+                blendDesc = "量子融混: " + parts.join(' + ');
+            } else {
+                blendDesc = "100% 极纯振谐";
+            }
+            document.getElementById('val-mood-blend').textContent = blendDesc;
+
+            // 3. 顶部实时指标
+            document.getElementById('data-entropy').textContent = `${(currentBlend.entropy * 100).toFixed(2)} %`;
+            document.getElementById('data-frequency').textContent = `${(currentBlend.freq * 60 * ctrlFreq).toFixed(2)} Hz`;
+            
+            // 4. 底部仪表
+            document.getElementById('gauge-color-hex').textContent = currentBlend.renderedColor.toUpperCase();
+            document.getElementById('gauge-color').firstElementChild.style.backgroundColor = currentBlend.renderedColor;
+            document.getElementById('gauge-damping').textContent = `μ = ${currentBlend.damping.toFixed(3)}`;
+            document.getElementById('gauge-order').textContent = currentBlend.order;
+            document.getElementById('gauge-order').style.color = currentBlend.renderedColor;
+            
+            // 计算虚数相位角
+            const fakePhase = (Date.now() / 2500) % (Math.PI * 2);
+            document.getElementById('gauge-phase').textContent = `Φ = ${fakePhase.toFixed(2)} rad`;
+
+            // 同步调整微调面板的音调属性等
+            document.getElementById('lbl-slide-amp').textContent = `${ctrlAmp.toFixed(1)}x`;
+            document.getElementById('lbl-slide-freq').textContent = `${ctrlFreq.toFixed(1)}x`;
+            document.getElementById('lbl-slide-speed').textContent = `${ctrlSpeed.toFixed(1)}x`;
+            
+            // 更新示波器偏置 Vpp
+            const vpp = (currentBlend.amp * ctrlAmp * 3.2).toFixed(1);
+            document.getElementById('val-bias').textContent = `Vpp = ${vpp} V`;
+        }
+
+        // ==========================================
+        // 4. UI 触发器与事件绑定
+        // ==========================================
+        
+        // A. 动态生成快捷情绪面板
+        const presetsContainer = document.getElementById('presets-container');
+        for (let key in MOODS) {
+            const item = MOODS[key];
+            const btn = document.createElement('button');
+            btn.className = "p-1.5 rounded-lg text-[11px] font-bold border transition-all text-center truncate select-none active:scale-95";
+            btn.style.borderColor = `${item.color}33`;
+            btn.style.color = item.color;
+            btn.style.backgroundColor = `${item.color}0a`;
+            btn.textContent = item.name;
+
+            btn.onclick = () => {
+                // 清空自由文本输入
+                document.getElementById('txt-mood-input').value = "";
+                // 单个触发
+                const w = {};
+                w[key] = 1.0;
+                blendMoods(w);
+                
+                // 爆炸对应色系的粒子
+                explosionOfMood(item.color);
+            };
+            presetsContainer.appendChild(btn);
+        }
+
+        // B. 文本区域触发实时监听 (带节流限速)
+        const textInput = document.getElementById('txt-mood-input');
+        textInput.addEventListener('input', (e) => {
+            analyzeSentiment(e.target.value);
+        });
+
+        document.getElementById('btn-clear-input').onclick = () => {
+            textInput.value = "";
+            analyzeSentiment("");
+        };
+
+        // C. 声音合成器开关按钮
+        const audioBtn = document.getElementById('btn-audio-toggle');
+        audioBtn.onclick = () => {
+            if (isMuted) {
+                if (!audioCtx) {
+                    initAudio();
+                }
+                isMuted = false;
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                document.getElementById('icon-audio').setAttribute('data-lucide', 'volume-2');
+                document.getElementById('icon-audio').classList.remove('text-rose-500');
+                document.getElementById('icon-audio').classList.add('text-emerald-400');
+                document.getElementById('text-audio').textContent = "合成器: 振鸣中";
+                document.getElementById('text-audio').classList.add('text-emerald-400');
+            } else {
+                isMuted = true;
+                if (mainGain) {
+                    mainGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+                }
+                document.getElementById('icon-audio').setAttribute('data-lucide', 'volume-x');
+                document.getElementById('icon-audio').classList.remove('text-emerald-400');
+                document.getElementById('icon-audio').classList.add('text-rose-500');
+                document.getElementById('text-audio').textContent = "合成器: 已静音";
+                document.getElementById('text-audio').classList.remove('text-emerald-400');
+            }
+            lucide.createIcons();
+            updateSynthesizerPitch();
+        };
+
+        // D. 可视化模式切换
+        const modeButtons = document.querySelectorAll('.btn-mode');
+        modeButtons.forEach(btn => {
+            btn.onclick = () => {
+                modeButtons.forEach(b => {
+                    b.className = "btn-mode px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all flex items-center space-x-1";
+                });
+                
+                // 设置高亮
+                btn.className = "btn-mode px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 transition-all flex items-center space-x-1";
+                
+                visualMode = btn.getAttribute('data-mode');
+                
+                // 重整粒子数
+                initParticlesForMode(visualMode);
+            };
+        });
+
+        // E. 精细调和滑条关联
+        const slideAmp = document.getElementById('slide-amp');
+        const slideFreq = document.getElementById('slide-freq');
+        const slideSpeed = document.getElementById('slide-speed');
+
+        function updateSlidersFromUI() {
+            ctrlAmp = parseFloat(slideAmp.value);
+            ctrlFreq = parseFloat(slideFreq.value);
+            ctrlSpeed = parseFloat(slideSpeed.value);
+            
+            // 强制重绘UI中由于倍率变化引起的数据变化
+            const domKey = Object.keys(currentBlend.activeMoods).sort((a,b) => currentBlend.activeMoods[b] - currentBlend.activeMoods[a])[0];
+            updateSentimentUI(domKey, currentBlend.activeMoods);
+        }
+
+        slideAmp.addEventListener('input', updateSlidersFromUI);
+        slideFreq.addEventListener('input', updateSlidersFromUI);
+        slideSpeed.addEventListener('input', updateSlidersFromUI);
+
+        document.getElementById('btn-reset-sliders').onclick = () => {
+            slideAmp.value = 1.0;
+            slideFreq.value = 1.0;
+            slideSpeed.value = 1.0;
+            updateSlidersFromUI();
+        };
+
+        // F. 心境演变演示
+        const DEMO_PHASES = [
+            "此时此刻，我静静地坐在桌前，望着窗外，内心感到无比的平静和安宁...",
+            "忽然！发现中奖彩票中了十个亿！太棒了！简直是无法想象的狂喜与惊喜！！",
+            "突然一阵阴冷，想起这只是一场梦，空欢喜一场，失落难受，一种深深的悲哀与痛苦涌上心头...",
+            "这时候，墙角突然闪过一道恐怖的黑影，我吓了一跳！感到无比惊奇和恐惧害怕！",
+            "原来是我的猫！哈哈太可爱了。它默默地走过来蹭蹭我的脚，如此温柔和充满喜欢，真治愈啊。"
+        ];
+        let currentDemoPhaseIdx = 0;
+
+        document.getElementById('btn-toggle-demo').onclick = () => {
+            demoModeActive = !demoModeActive;
+            const btn = document.getElementById('btn-toggle-demo');
+            if (demoModeActive) {
+                btn.innerHTML = `<i data-lucide="square" class="w-3.5 h-3.5 text-rose-500"></i><span>停止心境漫放</span>`;
+                demoTimer = 0;
+                currentDemoPhaseIdx = 0;
+                runDemoTick();
+            } else {
+                btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5 text-yellow-400"></i><span>心境慢放演示</span>`;
+            }
+            lucide.createIcons();
+        };
+
+        function runDemoTick() {
+            if (!demoModeActive) return;
+            const text = DEMO_PHASES[currentDemoPhaseIdx];
+            document.getElementById('txt-mood-input').value = text;
+            analyzeSentiment(text);
+
+            currentDemoPhaseIdx = (currentDemoPhaseIdx + 1) % DEMO_PHASES.length;
+
+            // 每 8 秒自动切换下一段心境
+            setTimeout(() => {
+                if (demoModeActive) runDemoTick();
+            }, 8000);
+        }
+
+        // G. 保存示波器快照
+        document.getElementById('btn-screenshot').onclick = () => {
+            // 利用 a 标签模拟下载 canvas
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `MOOD_OSCILLOSCOPE_${Date.now()}.png`;
+            link.href = dataUrl;
+            link.click();
+
+            // 弹出屏幕提示
+            const toast = document.getElementById('screen-toast');
+            toast.style.transform = 'translate(-50%, -10px) scale(1)';
+            setTimeout(() => {
+                toast.style.transform = 'translate(-50%, 0) scale(0)';
+            }, 2500);
+        };
+
+        // ==========================================
+        // 5. 粒子动力学发动机 (Flow Fields)
+        // ==========================================
+        class Particle {
+            constructor(isStatic = false) {
+                this.isStatic = isStatic;
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = 1.5 + Math.random() * 3.5;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.life = 60 + Math.random() * 120;
+                this.opacity = Math.random() * 0.8 + 0.2;
+                this.hue = Math.random() * 360;
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            update(moodAmp, moodFreq, moodEntropy) {
+                this.life--;
+                
+                // 针对不同模式，运动方式截然不同
+                if (visualMode === 'particle') {
+                    // 量子流场旋转，熵值（混沌率）决定噪声大小
+                    const noise = (Math.random() - 0.5) * moodEntropy * 15;
+                    const scale = 0.005;
+                    // 流线角度场 (类似于由正弦函数构建的矢量流)
+                    const angle = Math.sin(this.x * scale * moodFreq) * Math.cos(this.y * scale * moodFreq) * Math.PI * 2;
+                    
+                    this.speedX = Math.cos(angle) * (1.2 + moodAmp * 2) + noise;
+                    this.speedY = Math.sin(angle) * (1.2 + moodAmp * 2) + noise;
+
+                    this.x += this.speedX * ctrlSpeed;
+                    this.y += this.speedY * ctrlSpeed;
+
+                    // 越出屏幕重新初始化
+                    if (this.x < 0 || this.x > width || this.y < 0 || this.y > height || this.life <= 0) {
+                        this.reset();
+                    }
+                } 
+                else if (visualMode === 'radial') {
+                    // 圆环径向扩散
+                    this.angle += (0.01 + moodEntropy * 0.05) * ctrlSpeed;
+                    const radiusOffset = Math.sin(this.angle * moodFreq * 3) * moodAmp * 40;
+                    const baseRadius = 120 + radiusOffset;
+
+                    const targetX = width / 2 + Math.cos(this.angle) * baseRadius;
+                    const targetY = height / 2 + Math.sin(this.angle) * baseRadius;
+
+                    // 粒子平滑靠近圆周轨道
+                    this.x += (targetX - this.x) * 0.1;
+                    this.y += (targetY - this.y) * 0.1;
+
+                    if (this.life <= 0) {
+                        this.life = 100;
+                    }
+                }
+                else {
+                    // 默认气泡缓慢上升/布朗振动
+                    const jitter = (Math.random() - 0.5) * moodEntropy * 4;
+                    this.x += jitter;
+                    this.y -= (0.5 + moodAmp * 0.8) * ctrlSpeed;
+
+                    if (this.y < -10 || this.life <= 0) {
+                        this.reset();
+                        this.y = height + 10;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                
+                // 渲染粒子发光阴影
+                ctx.shadowBlur = this.size * 2;
+                ctx.shadowColor = currentBlend.renderedColor;
+
+                ctx.fillStyle = currentBlend.renderedColor;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function initParticlesForMode(mode) {
+            particles = [];
+            let count = MAX_PARTICLES;
+            if (mode === 'particle') count = 220; // 粒子流场需要更密集
+            if (mode === 'radial') count = 100;
+            
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        // 情绪激荡爆破
+        function explosionOfMood(color) {
+            for (let i = 0; i < 40; i++) {
+                const p = new Particle();
+                p.x = width / 2;
+                p.y = height / 2;
+                p.speedX = (Math.random() - 0.5) * 14;
+                p.speedY = (Math.random() - 0.5) * 14;
+                p.size = 2 + Math.random() * 4;
+                p.life = 40 + Math.random() * 30;
+                particles.push(p);
+            }
+        }
+
+        // Canvas 点击发出探针爆破
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            for (let i = 0; i < 20; i++) {
+                const p = new Particle();
+                p.x = clickX;
+                p.y = clickY;
+                p.speedX = (Math.random() - 0.5) * 8;
+                p.speedY = (Math.random() - 0.5) * 8;
+                p.life = 30 + Math.random() * 20;
+                particles.push(p);
+            }
+            playInteractiveClink();
+        };
+
+        // 点击时发出轻微振鸣
+        function playInteractiveClink() {
+            if (!audioCtx || isMuted) return;
+            const clickOsc = audioCtx.createOscillator();
+            const clickGain = audioCtx.createGain();
+            clickOsc.connect(clickGain);
+            clickGain.connect(audioCtx.destination);
+
+            clickOsc.type = 'sine';
+            clickOsc.frequency.setValueAtTime(targetSoundFreq * 2.5, audioCtx.currentTime);
+            clickGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            clickGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+            clickOsc.start();
+            clickOsc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        // ==========================================
+        // 6. 核心绘图系统 (CRT荧幕渲染循环)
+        // ==========================================
+        let renderTime = 0;
+
+        function tick() {
+            // A. 清空并留下一丝拖尾（形成CRT荧光粉余晖/示波器残影）
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.22)';
+            ctx.fillRect(0, 0, width, height);
+
+            // B. 参数解包
+            const amp = currentBlend.amp * ctrlAmp * 60; // 放大至可视化像素级别
+            const freq = currentBlend.freq * ctrlFreq * 0.015;
+            const speed = currentBlend.entropy; // 混乱度影响波形扭曲动感
+            
+            renderTime += 0.04 * ctrlSpeed;
+
+            // C. 绘制波形/粒子/频谱模式
+            if (visualMode === 'wave') {
+                drawAnalogWave(amp, freq);
+            } 
+            else if (visualMode === 'bar') {
+                draw3DBarEqualizer(amp, freq);
+            } 
+            else if (visualMode === 'particle') {
+                drawParticleStorm();
+            } 
+            else if (visualMode === 'radial') {
+                drawRadialRipple(amp, freq);
+            }
+
+            // D. 全局粒子独立更新渲染
+            particles.forEach(p => {
+                p.update(currentBlend.amp, currentBlend.freq, currentBlend.entropy);
+                p.draw();
+            });
+
+            // 保持循环
+            requestAnimationFrame(tick);
+        }
+
+        // Mode 1: 模拟正弦二次谐波示波器
+        function drawAnalogWave(amp, freq) {
+            ctx.save();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = currentBlend.renderedColor;
+            
+            // 荧光发光
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = currentBlend.renderedColor;
+
+            // 1. 绘制基本复合正弦波
+            ctx.beginPath();
+            for (let x = 0; x < width; x++) {
+                const progress = x / width;
+                
+                // 混合谐振波公式:
+                // y = 基础正弦波 + 3次二次谐波 + 心灵熵值带来的高频抖动噪声
+                const t = renderTime * 2;
+                const baseWave = Math.sin(x * freq + t);
+                const harmonic1 = Math.cos(x * freq * 2.5 - t * 0.8) * 0.35;
+                const harmonic2 = Math.sin(x * freq * 5.0 + t * 1.5) * 0.15;
+                
+                // 熵值抖动噪声
+                const jitter = (Math.random() - 0.5) * currentBlend.entropy * 14;
+                
+                // Damping 两侧向内收敛(阻尼减衰)，确保波形完美适配屏幕边缘
+                const envelope = Math.sin(progress * Math.PI); 
+                
+                const y = (height / 2) + (baseWave + harmonic1 + harmonic2) * amp * envelope + jitter;
+
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 2. 绘制辅助包络阴影线 (低调虚化)
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 1.0;
+            ctx.strokeStyle = `${currentBlend.renderedColor}33`;
+            ctx.setLineDash([6, 6]);
+
+            ctx.beginPath();
+            for (let x = 0; x < width; x += 4) {
+                const progress = x / width;
+                const envY = Math.sin(progress * Math.PI) * amp;
+                if (x === 0) ctx.moveTo(x, height / 2 + envY);
+                else ctx.lineTo(x, height / 2 + envY);
+            }
+            ctx.stroke();
+
+            ctx.beginPath();
+            for (let x = 0; x < width; x += 4) {
+                const progress = x / width;
+                const envY = Math.sin(progress * Math.PI) * amp;
+                if (x === 0) ctx.moveTo(x, height / 2 - envY);
+                else ctx.lineTo(x, height / 2 - envY);
+            }
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Mode 2: 立体跳动音频频谱
+        function draw3DBarEqualizer(amp, freq) {
+            ctx.save();
+            const barCount = 36;
+            const barWidth = (width / barCount) * 0.82;
+            const spacing = (width / barCount) * 0.18;
+            
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = currentBlend.renderedColor;
+
+            for (let i = 0; i < barCount; i++) {
+                // 计算当前柱子的振幅高度 (基于正弦序列物理跳动)
+                const t = renderTime * 2.2;
+                const noise = (Math.random() - 0.5) * currentBlend.entropy * 15;
+                const val = Math.sin(i * freq * 15 + t) * Math.cos(i * freq * 5 - t * 0.5);
+                
+                const heightScale = Math.abs(val) * amp * 1.5 + Math.abs(noise);
+                
+                const x = i * (barWidth + spacing) + spacing / 2;
+                const y = height / 2 - heightScale / 2;
+
+                // 渐变填充
+                const grad = ctx.createLinearGradient(x, y, x, y + heightScale);
+                grad.addColorStop(0, currentBlend.renderedColor);
+                grad.addColorStop(1, `${currentBlend.renderedColor}22`);
+
+                ctx.fillStyle = grad;
+                
+                // 绘制圆角立体柱
+                ctx.beginPath();
+                ctx.roundRect(x, y, barWidth, heightScale, 4);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // Mode 3: 粒子流场不需要额外的网底波纹，在 tick 中自行运动绘制
+        function drawParticleStorm() {
+            // 在中间打上一层量子发光核心
+            ctx.save();
+            const grad = ctx.createRadialGradient(width/2, height/2, 10, width/2, height/2, 280);
+            grad.addColorStop(0, `${currentBlend.renderedColor}11`);
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+            ctx.restore();
+        }
+
+        // Mode 4: 环形共振涟漪
+        function drawRadialRipple(amp, freq) {
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = currentBlend.renderedColor;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = currentBlend.renderedColor;
+
+            const totalPoints = 120;
+            const baseRadius = 120 + amp * 0.5;
+
+            ctx.beginPath();
+            for (let i = 0; i <= totalPoints; i++) {
+                const angle = (i / totalPoints) * Math.PI * 2;
+                
+                // 环形调制公式
+                const t = renderTime * 2.5;
+                const wobble = Math.sin(angle * currentBlend.freq * 2.5 + t) * Math.cos(angle * 4 - t * 1.2);
+                
+                // 噪声震颤
+                const jitter = (Math.random() - 0.5) * currentBlend.entropy * 12;
+                
+                const r = baseRadius + wobble * amp * 0.8 + jitter;
+                
+                const x = Math.cos(angle) * r;
+                const y = Math.sin(angle) * r;
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // 内环辅助小星芒
+            ctx.strokeStyle = `${currentBlend.renderedColor}33`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius * 0.6, 0, Math.PI*2);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // ==========================================
+        // 7. 初始化载入
+        // ==========================================
+        initParticlesForMode(visualMode);
+        blendMoods({ calm: 1.0 }); // 初始平静
+        tick();
+
+    </script>
+</body>
+</html>

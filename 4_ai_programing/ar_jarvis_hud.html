@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JARVIS AR Heads Up Display</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f3ff;
+            --secondary: #0077ff;
+            --alert: #ffaa00;
+            --bg-dark: rgba(0, 10, 20, 0.7);
+            --font-main: 'Rajdhani', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--primary);
+            font-family: var(--font-main);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Video Background */
+        #webcam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 1;
+            transform: scaleX(-1); /* Mirror effect */
+            opacity: 0.4; /* Darken video to make UI pop */
+            filter: contrast(1.2) saturate(1.5) hue-rotate(180deg); /* Sci-fi color grading */
+        }
+
+        /* 3D Canvas */
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* SVG Overlay for connection lines */
+        #svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 8;
+            pointer-events: none;
+        }
+        
+        .tracking-line {
+            stroke: var(--primary);
+            stroke-width: 1.5;
+            stroke-dasharray: 4 4;
+            opacity: 0.7;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: 1000; }
+        }
+
+        /* Global UI Overlays */
+        .vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, transparent 50%, rgba(0, 5, 10, 0.8) 100%);
+            z-index: 2;
+            pointer-events: none;
+            box-shadow: inset 0 0 100px rgba(0, 243, 255, 0.1);
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
+            background-size: 100% 4px;
+            z-index: 3;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        /* Head-Tracking HUD Panel */
+        #hud-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 280px;
+            background: var(--bg-dark);
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0, 243, 255, 0.1);
+            padding: 15px;
+            z-index: 10;
+            pointer-events: none;
+            /* Angled sci-fi corners */
+            clip-path: polygon(0 15px, 15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            transform: translate(0, 0); /* Handled by JS */
+        }
+
+        #hud-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 2px solid rgba(0, 243, 255, 0.5);
+            clip-path: polygon(0 15px, 15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+            pointer-events: none;
+        }
+
+        .hud-header {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.4);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hud-header span.status {
+            font-size: 12px;
+            color: #00ffaa;
+            animation: blink 2s infinite;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .metric-label {
+            color: rgba(0, 243, 255, 0.7);
+        }
+
+        .metric-value {
+            font-weight: 600;
+            font-family: monospace;
+            text-shadow: 0 0 5px var(--primary);
+        }
+
+        .hud-bar-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 243, 255, 0.2);
+            margin-top: 4px;
+            position: relative;
+        }
+
+        .hud-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 50%;
+            box-shadow: 0 0 8px var(--primary);
+            transition: width 0.2s ease;
+        }
+
+        .target-reticle {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--alert);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9;
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 0 15px rgba(255, 170, 0, 0.5);
+        }
+        
+        .target-reticle::before, .target-reticle::after {
+            content: '';
+            position: absolute;
+            background: var(--alert);
+        }
+        .target-reticle::before { top: 50%; left: -5px; right: -5px; height: 1px; }
+        .target-reticle::after { left: 50%; top: -5px; bottom: -5px; width: 1px; }
+
+        /* Loader */
+        #loader {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader-ring {
+            width: 150px;
+            height: 150px;
+            border: 2px solid transparent;
+            border-top: 2px solid var(--primary);
+            border-right: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .loader-ring::before {
+            content: '';
+            position: absolute;
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            border: 2px solid transparent;
+            border-bottom: 2px solid var(--secondary);
+            border-left: 2px solid var(--secondary);
+            border-radius: 50%;
+            animation: spin-reverse 2s linear infinite;
+        }
+
+        #loader-text {
+            font-size: 20px;
+            letter-spacing: 4px;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Fallback Simulation Warning */
+        #sim-warning {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--alert);
+            font-size: 16px;
+            letter-spacing: 2px;
+            z-index: 20;
+            display: none;
+            text-shadow: 0 0 10px var(--alert);
+            animation: pulse 2s infinite;
+            pointer-events: none;
+            text-align: center;
+            width: 100%;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* Static UI Elements */
+        .corner-ui {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 2px solid var(--primary);
+            z-index: 10;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .top-left { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .top-right { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .bottom-left { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        .sys-info {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            text-align: right;
+            z-index: 10;
+            font-size: 14px;
+            pointer-events: none;
+        }
+    </style>
+
+    <!-- Import Maps for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="loader-ring"></div>
+        <div id="loader-text">INITIALIZING MARK L...</div>
+    </div>
+
+    <!-- UI Backgrounds -->
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+    
+    <!-- Static HUD Borders -->
+    <div class="corner-ui top-left"></div>
+    <div class="corner-ui top-right"></div>
+    <div class="corner-ui bottom-left"></div>
+    <div class="corner-ui bottom-right"></div>
+
+    <div id="sim-warning">⚠ SENSOR OFFLINE: SIMULATION MODE ACTIVE (USE MOUSE) ⚠</div>
+
+    <div class="sys-info">
+        <div>SYS.MEM: <span id="sys-mem">0</span> TB</div>
+        <div>UPLINK: <span id="sys-uplink">SECURE</span></div>
+        <div style="color: #00ffaa; margin-top: 5px;">A.I. ONLINE</div>
+    </div>
+
+    <!-- Video Feed -->
+    <video id="webcam" autoplay playsinline muted></video>
+
+    <!-- 3D Graphics Canvas -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Vector Graphics Layer for Connecting Lines -->
+    <svg id="svg-layer">
+        <line id="connection-line" class="tracking-line" x1="0" y1="0" x2="0" y2="0" />
+    </svg>
+
+    <!-- Dynamic Target Reticle (Face position) -->
+    <div class="target-reticle" id="target-reticle"></div>
+
+    <!-- Floating HUD Panel -->
+    <div id="hud-panel">
+        <div class="hud-header">
+            SUBJECT TRACKING
+            <span class="status">ACTIVE</span>
+        </div>
+        
+        <div class="metric-row">
+            <span class="metric-label">THREAT LEVEL</span>
+            <span class="metric-value" style="color: #00ffaa;">MINIMAL</span>
+        </div>
+        
+        <div class="metric-row">
+            <span class="metric-label">HEART RATE</span>
+            <span class="metric-value" id="val-hr">72 BPM</span>
+        </div>
+        <div class="hud-bar-container"><div class="hud-bar-fill" id="bar-hr"></div></div>
+
+        <div class="metric-row" style="margin-top: 12px;">
+            <span class="metric-label">CORTISOL</span>
+            <span class="metric-value" id="val-cort">12.4 nmol/L</span>
+        </div>
+        <div class="hud-bar-container"><div class="hud-bar-fill" id="bar-cort"></div></div>
+
+        <div class="metric-row" style="margin-top: 12px;">
+            <span class="metric-label">AZIMUTH</span>
+            <span class="metric-value" id="val-azim">0.00°</span>
+        </div>
+
+        <div class="metric-row" style="margin-top: 12px;">
+            <span class="metric-label">ELEVATION</span>
+            <span class="metric-value" id="val-elev">0.00°</span>
+        </div>
+        
+        <div style="margin-top: 15px; font-size: 10px; color: rgba(0, 243, 255, 0.5); text-align: center; border-top: 1px solid rgba(0,243,255,0.2); padding-top: 5px;">
+            BIO-METRIC SCAN CONTINUOUS
+        </div>
+    </div>
+
+    <!-- Main Logic Script -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { FilesetResolver, FaceLandmarker, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
+
+        // State & DOM Elements
+        const video = document.getElementById('webcam');
+        const loader = document.getElementById('loader');
+        const hudPanel = document.getElementById('hud-panel');
+        const reticle = document.getElementById('target-reticle');
+        const svgLine = document.getElementById('connection-line');
+        
+        // HUD Metrics Elements
+        const elHr = document.getElementById('val-hr');
+        const barHr = document.getElementById('bar-hr');
+        const elCort = document.getElementById('val-cort');
+        const barCort = document.getElementById('bar-cort');
+        const elAzim = document.getElementById('val-azim');
+        const elElev = document.getElementById('val-elev');
+        const elSysMem = document.getElementById('sys-mem');
+
+        let faceLandmarker;
+        let handLandmarker;
+        let webcamRunning = false;
+        let simulationMode = false;
+        let faceDetected = false;
+        let lastVideoTime = -1;
+
+        // Smoothing/Lerping variables
+        const currentFacePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const targetFacePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const currentHudPos = { x: 0, y: 0 };
+        
+        // Three.js Variables
+        let scene, camera, renderer, globeGroup;
+        let currentGlobeRot = { x: 0, y: 0 };
+        let targetGlobeRot = { x: 0, y: 0 };
+        let currentGlobeScale = 1;
+        let targetGlobeScale = 1;
+        const GLOBE_BASE_SCALE = 1.2;
+
+        // --- 1. INITIALIZE THREE.JS ---
+        function initThreeJS() {
+            const canvas = document.getElementById('three-canvas');
+            scene = new THREE.Scene();
+            
+            // Camera setup to place origin in view
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.z = 10;
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            globeGroup = new THREE.Group();
+            
+            // Position globe strictly on the left center area
+            const aspect = window.innerWidth / window.innerHeight;
+            globeGroup.position.set(-3 * aspect, 0, 0); 
+            scene.add(globeGroup);
+
+            // Core Globe
+            const sphereGeo = new THREE.SphereGeometry(1.5, 24, 24);
+            const sphereMat = new THREE.MeshBasicMaterial({ 
+                color: 0x00f3ff, 
+                wireframe: true, 
+                transparent: true, 
+                opacity: 0.3 
+            });
+            const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+            globeGroup.add(sphere);
+
+            // Outer rings
+            const ringGeo1 = new THREE.TorusGeometry(1.8, 0.02, 16, 64);
+            const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.6 });
+            const ring1 = new THREE.Mesh(ringGeo1, ringMat1);
+            ring1.rotation.x = Math.PI / 2;
+            globeGroup.add(ring1);
+
+            const ringGeo2 = new THREE.TorusGeometry(2.1, 0.01, 16, 64);
+            const ringMat2 = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.4 });
+            const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+            ring2.rotation.y = Math.PI / 4;
+            globeGroup.add(ring2);
+
+            // Add some decorative points (stars/nodes)
+            const particlesGeo = new THREE.BufferGeometry();
+            const particleCount = 100;
+            const posArray = new Float32Array(particleCount * 3);
+            for(let i=0; i<particleCount*3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 6;
+            }
+            particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const particlesMat = new THREE.PointsMaterial({ size: 0.05, color: 0x00f3ff, transparent: true, opacity: 0.8});
+            const particles = new THREE.Points(particlesGeo, particlesMat);
+            globeGroup.add(particles);
+
+            // Auto-rotation objects
+            globeGroup.userData = {
+                sphere: sphere,
+                ring1: ring1,
+                ring2: ring2,
+                particles: particles
+            };
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const aspect = window.innerWidth / window.innerHeight;
+            globeGroup.position.set(-3 * aspect, 0, 0); 
+        }
+
+        // --- 2. INITIALIZE MEDIAPIPE ---
+        async function initMediaPipe() {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+            );
+
+            document.getElementById('loader-text').innerText = "LOADING AI MODELS...";
+
+            try {
+                // Load Face Landmarker
+                faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    outputFaceBlendshapes: false,
+                    runningMode: "VIDEO",
+                    numFaces: 1
+                });
+
+                // Load Hand Landmarker
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2
+                });
+
+                document.getElementById('loader-text').innerText = "ACTIVATING SENSORS...";
+                startWebcam();
+            } catch (err) {
+                console.error("Failed to load models:", err);
+                fallbackToSimulation();
+            }
+        }
+
+        // --- 3. INITIALIZE WEBCAM ---
+        function startWebcam() {
+            // Relaxed constraints using 'ideal' prevents NotReadableError if exact resolution is unavailable or blocked
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 1280 }, 
+                    height: { ideal: 720 }, 
+                    facingMode: "user" 
+                } 
+            }).then((stream) => {
+                video.srcObject = stream;
+                video.addEventListener("loadeddata", () => {
+                    webcamRunning = true;
+                    // Hide loader
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                    // Start render loop
+                    requestAnimationFrame(mainLoop);
+                });
+            }).catch((err) => {
+                console.warn("Webcam error:", err);
+                fallbackToSimulation();
+            });
+        }
+        
+        function fallbackToSimulation() {
+            document.getElementById('loader-text').innerText = "SENSOR OFFLINE. ENGAGING SIMULATION...";
+            document.getElementById('loader-text').style.color = "var(--alert)";
+            
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+                
+                simulationMode = true;
+                document.getElementById('sim-warning').style.display = 'block';
+                
+                // Track mouse to simulate Face & Hand movements
+                window.addEventListener('mousemove', (e) => {
+                    targetFacePos.x = e.clientX;
+                    targetFacePos.y = e.clientY;
+                    
+                    // Simulate hand rotation with mouse position
+                    targetGlobeRot.y = (e.clientX / window.innerWidth - 0.5) * Math.PI * 2;
+                    targetGlobeRot.x = (e.clientY / window.innerHeight - 0.5) * Math.PI * 2;
+                    
+                    elAzim.innerText = `${((0.5 - (e.clientX / window.innerWidth)) * 90).toFixed(2)}°`;
+                    elElev.innerText = `${(((e.clientY / window.innerHeight) - 0.5) * 90).toFixed(2)}°`;
+                });
+
+                // Scroll to zoom globe
+                window.addEventListener('wheel', (e) => {
+                    targetGlobeScale += e.deltaY * -0.002;
+                    targetGlobeScale = Math.max(0.5, Math.min(targetGlobeScale, 3.0));
+                });
+
+                requestAnimationFrame(mainLoop);
+            }, 2000);
+        }
+
+        // --- 4. HELPER: COORDINATE MAPPING ---
+        function mapToScreen(normX, normY) {
+            const vw = video.videoWidth;
+            const vh = video.videoHeight;
+            const sw = window.innerWidth;
+            const sh = window.innerHeight;
+
+            const scale = Math.max(sw / vw, sh / vh);
+            const renderedWidth = vw * scale;
+            const renderedHeight = vh * scale;
+
+            const offsetX = (sw - renderedWidth) / 2;
+            const offsetY = (sh - renderedHeight) / 2;
+
+            // Mirror X because the video is mirrored via CSS scaleX(-1)
+            const mirroredX = 1 - normX;
+
+            return {
+                x: mirroredX * renderedWidth + offsetX,
+                y: normY * renderedHeight + offsetY
+            };
+        }
+
+        // Linear interpolation
+        function lerp(start, end, amt) {
+            return (1 - amt) * start + amt * end;
+        }
+
+        // UI Updates simulation
+        setInterval(() => {
+            elSysMem.innerText = (Math.random() * 2 + 16).toFixed(1);
+            
+            // Randomly fluctuate metrics slightly around a base
+            const baseHr = 72;
+            const newHr = baseHr + Math.floor(Math.random() * 10 - 5);
+            elHr.innerText = `${newHr} BPM`;
+            barHr.style.width = `${(newHr / 120) * 100}%`;
+
+            const baseCort = 12.4;
+            const newCort = (baseCort + Math.random() * 2 - 1).toFixed(1);
+            elCort.innerText = `${newCort} nmol/L`;
+            barCort.style.width = `${(newCort / 30) * 100}%`;
+        }, 1000);
+
+        // --- 5. MAIN LOOP ---
+        function mainLoop() {
+            let nowInMs = performance.now();
+
+            if (webcamRunning && video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                faceDetected = false;
+
+                // --- PROCESS FACE (HUD TRACKING) ---
+                if (faceLandmarker) {
+                    const faceResults = faceLandmarker.detectForVideo(video, nowInMs);
+                    if (faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
+                        faceDetected = true;
+                        const landmarks = faceResults.faceLandmarks[0];
+                        const nose = landmarks[1];
+                        const screenPos = mapToScreen(nose.x, nose.y);
+                        
+                        targetFacePos.x = screenPos.x;
+                        targetFacePos.y = screenPos.y;
+
+                        elAzim.innerText = `${((0.5 - nose.x) * 90).toFixed(2)}°`;
+                        elElev.innerText = `${((nose.y - 0.5) * 90).toFixed(2)}°`;
+                    }
+                }
+
+                // --- PROCESS HANDS (GLOBE CONTROL) ---
+                if (handLandmarker) {
+                    const handResults = handLandmarker.detectForVideo(video, nowInMs);
+                    if (handResults.landmarks && handResults.landmarks.length > 0) {
+                        const hand = handResults.landmarks[0];
+                        const center = hand[9];
+                        const interactX = 1 - center.x;
+                        
+                        targetGlobeRot.y = (interactX - 0.5) * Math.PI * 4;
+                        targetGlobeRot.x = (center.y - 0.5) * Math.PI * 4;
+
+                        // Pinch logic for scale
+                        const thumbTip = hand[4];
+                        const indexTip = hand[8];
+                        const dx = thumbTip.x - indexTip.x;
+                        const dy = thumbTip.y - indexTip.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        let scaleTarget = GLOBE_BASE_SCALE + (dist - 0.05) * 10;
+                        targetGlobeScale = Math.max(0.5, Math.min(scaleTarget, 3.0)); 
+                    } else {
+                        // Auto-rotate back to idle when hands missing
+                        targetGlobeRot.y += 0.005; 
+                        targetGlobeScale = GLOBE_BASE_SCALE;
+                    }
+                }
+            } else if (simulationMode) {
+                faceDetected = true; // Always display HUD in simulation
+                targetGlobeRot.y += 0.002; // Passive ambient rotation
+            }
+
+            // --- SMOOTH ANIMATIONS & RENDER ---
+            
+            // 1. Update Face & HUD Positions
+            currentFacePos.x = lerp(currentFacePos.x, targetFacePos.x, 0.15);
+            currentFacePos.y = lerp(currentFacePos.y, targetFacePos.y, 0.15);
+
+            if (faceDetected || hudPanel.style.opacity === '1') {
+                reticle.style.opacity = '1';
+                reticle.style.left = `${currentFacePos.x}px`;
+                reticle.style.top = `${currentFacePos.y}px`;
+
+                // Offset HUD to the right of the face
+                const hudTargetX = currentFacePos.x + 200;
+                const hudTargetY = currentFacePos.y - 100;
+                
+                currentHudPos.x = lerp(currentHudPos.x, hudTargetX, 0.1);
+                currentHudPos.y = lerp(currentHudPos.y, hudTargetY, 0.1);
+
+                hudPanel.style.opacity = faceDetected ? '1' : '0';
+                hudPanel.style.transform = `translate(${currentHudPos.x}px, ${currentHudPos.y}px)`;
+
+                // Draw connecting SVG line
+                svgLine.setAttribute('x1', currentFacePos.x);
+                svgLine.setAttribute('y1', currentFacePos.y);
+                svgLine.setAttribute('x2', currentHudPos.x);
+                svgLine.setAttribute('y2', currentHudPos.y + 75); 
+                svgLine.style.opacity = faceDetected ? '1' : '0';
+            } else {
+                reticle.style.opacity = '0';
+                svgLine.style.opacity = '0';
+                hudPanel.style.opacity = '0';
+            }
+
+            // 2. Update Three.js Globe
+            currentGlobeRot.x = lerp(currentGlobeRot.x, targetGlobeRot.x, 0.1);
+            currentGlobeRot.y = lerp(currentGlobeRot.y, targetGlobeRot.y, 0.1);
+            currentGlobeScale = lerp(currentGlobeScale, targetGlobeScale, 0.1);
+
+            globeGroup.rotation.x = currentGlobeRot.x;
+            globeGroup.rotation.y = currentGlobeRot.y;
+            globeGroup.scale.set(currentGlobeScale, currentGlobeScale, currentGlobeScale);
+
+            if(globeGroup.userData.ring1) {
+                globeGroup.userData.ring1.rotation.z -= 0.01;
+                globeGroup.userData.ring2.rotation.x += 0.005;
+                globeGroup.userData.particles.rotation.y += 0.002;
+            }
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(mainLoop);
+        }
+
+        // --- STARTUP SEQUENCE ---
+        initThreeJS();
+        initMediaPipe();
+
+    </script>
+</body>
+</html>

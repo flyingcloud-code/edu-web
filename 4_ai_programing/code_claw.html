@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能抓娃娃机 - 物理模拟与强化学习教学关卡</title>
+    <!-- 引入 Tailwind CSS 进行界面美化 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+        .font-retro {
+            font-family: 'ZCOOL KuaiLe', cursive, sans-serif;
+        }
+        /* 霓虹发光效果 */
+        .neon-glow {
+            text-shadow: 0 0 8px rgba(244, 63, 94, 0.6), 0 0 20px rgba(244, 63, 94, 0.4);
+        }
+        .neon-border {
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.3), inset 0 0 15px rgba(244, 63, 94, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between font-sans overflow-x-hidden">
+
+    <!-- 顶部状态栏 -->
+    <header class="w-full max-w-6xl px-4 py-3 flex flex-wrap justify-between items-center border-b border-rose-950/40 bg-slate-900/60 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <div class="bg-rose-500 text-white p-2 rounded-lg shadow-lg shadow-rose-500/20">
+                <i data-lucide="toy-brick" class="w-6 h-6 animate-bounce"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-rose-400 font-retro tracking-wider neon-glow">AI 智能抓娃娃机</h1>
+                <p class="text-xs text-slate-400">AI编程课程·物理模拟与控制决策实验平台</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4 mt-2 sm:mt-0">
+            <!-- 游戏代币 -->
+            <div class="flex items-center bg-slate-800 border border-amber-500/30 px-3 py-1.5 rounded-full shadow-inner">
+                <i data-lucide="coins" class="w-5 h-5 text-amber-400 mr-1.5"></i>
+                <span id="coin-count" class="font-bold text-amber-300 min-w-[3ch] text-center">80</span>
+                <span class="text-xs text-amber-500/70 ml-1">币</span>
+            </div>
+            <!-- 抓到娃娃数 -->
+            <div class="flex items-center bg-slate-800 border border-emerald-500/30 px-3 py-1.5 rounded-full shadow-inner">
+                <i data-lucide="trophy" class="w-5 h-5 text-emerald-400 mr-1.5"></i>
+                <span id="trophy-count" class="font-bold text-emerald-300 min-w-[2ch] text-center">0</span>
+                <span class="text-xs text-emerald-500/70 ml-1">只</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主交互区域 -->
+    <main class="w-full max-w-6xl px-4 py-6 flex flex-col lg:flex-row gap-6 flex-grow items-stretch">
+        
+        <!-- 左侧：街机实体娃娃机 -->
+        <div class="flex-grow lg:w-2/3 flex flex-col justify-between bg-slate-900 rounded-3xl p-4 border border-rose-500/20 shadow-2xl neon-border relative">
+            <!-- 霓虹装饰灯条 -->
+            <div class="absolute -top-1 left-1/4 right-1/4 h-2 bg-gradient-to-r from-transparent via-rose-500 to-transparent blur-sm"></div>
+            
+            <!-- 机器玻璃窗口容器 -->
+            <div class="relative w-full bg-slate-950 rounded-2xl overflow-hidden border-4 border-slate-800 shadow-inner flex flex-col" style="height: 480px;">
+                <!-- 内部背景环境与格栅 -->
+                <div class="absolute inset-0 bg-gradient-to-b from-indigo-950/30 via-slate-950 to-slate-950 pointer-events-none"></div>
+                <!-- 顶部反射玻璃反光条 -->
+                <div class="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/0 via-white/5 to-white/0 z-20"></div>
+                
+                <!-- 物理引擎绘制画布 -->
+                <canvas id="game-canvas" class="relative z-10 w-full h-full block" width="600" height="480"></canvas>
+                
+                <!-- 落物提示信息浮窗 -->
+                <div id="float-toast" class="absolute left-1/2 bottom-32 -translate-x-1/2 z-30 transform scale-0 transition-transform duration-300 bg-emerald-500/90 text-white font-bold px-4 py-2 rounded-full shadow-lg shadow-emerald-500/30 flex items-center space-x-2 pointer-events-none">
+                    <i data-lucide="party-popper" class="w-5 h-5"></i>
+                    <span id="toast-text">成功抓获大熊猫！+25金币</span>
+                </div>
+            </div>
+
+            <!-- 实体操控面板区域 -->
+            <div class="mt-4 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl p-4 border border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                
+                <!-- 1. 摇杆/方向按键模拟 -->
+                <div class="flex items-center space-x-3">
+                    <div class="flex flex-col items-center">
+                        <button id="btn-left" class="w-14 h-12 bg-slate-700 hover:bg-slate-600 active:translate-y-0.5 border-b-4 border-slate-950 rounded-xl flex items-center justify-center transition-all text-rose-400">
+                            <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                        </button>
+                        <span class="text-[10px] text-slate-500 mt-1">左移 (A)</span>
+                    </div>
+                    
+                    <!-- 摇杆视觉小玩具 -->
+                    <div class="w-16 h-16 bg-slate-950 rounded-full border-2 border-slate-700 flex items-center justify-center shadow-inner relative">
+                        <div id="joystick-ball" class="w-8 h-8 bg-gradient-to-br from-rose-400 to-rose-600 rounded-full shadow-lg cursor-pointer transform transition-transform duration-100" style="transform: translate(0px, 0px);"></div>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <button id="btn-right" class="w-14 h-12 bg-slate-700 hover:bg-slate-600 active:translate-y-0.5 border-b-4 border-slate-950 rounded-xl flex items-center justify-center transition-all text-rose-400">
+                            <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                        </button>
+                        <span class="text-[10px] text-slate-500 mt-1">右移 (D)</span>
+                    </div>
+                </div>
+
+                <!-- 2. 下落抓取巨型按键 -->
+                <div class="flex-1 max-w-xs w-full flex flex-col items-center">
+                    <button id="btn-grab" class="w-full py-4 px-6 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 active:scale-95 text-white font-bold text-lg rounded-2xl shadow-lg shadow-rose-500/30 transition-all border-b-4 border-rose-800 flex items-center justify-center space-x-2">
+                        <i data-lucide="arrow-down-circle" class="w-6 h-6 animate-pulse"></i>
+                        <span>下爪抓取！(空格)</span>
+                    </button>
+                    <div class="flex justify-between w-full px-2 mt-1.5 text-xs text-slate-400">
+                        <span>每次消耗: <strong class="text-amber-400">10 币</strong></span>
+                        <span class="animate-pulse flex items-center text-rose-400"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1"></span>系统状态: 就绪</span>
+                    </div>
+                </div>
+
+                <!-- 3. 辅助功能按钮 -->
+                <div class="flex items-center space-x-2">
+                    <button id="btn-restock" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 active:scale-95 transition-all flex flex-col items-center">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 text-blue-400"></i>
+                        <span class="text-[10px] mt-1">重新补货</span>
+                    </button>
+                    <button id="btn-help" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 active:scale-95 transition-all flex flex-col items-center">
+                        <i data-lucide="help-circle" class="w-5 h-5 text-purple-400"></i>
+                        <span class="text-[10px] mt-1">玩法指南</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：玩家画板 / 商店升级 / AI知识答题补币 -->
+        <div class="lg:w-1/3 flex flex-col gap-6">
+            
+            <!-- A. AI知识充能舱（特色答题免费获取金币） -->
+            <div class="bg-gradient-to-br from-slate-900 to-indigo-950 p-5 rounded-3xl border border-indigo-500/20 shadow-xl flex flex-col">
+                <div class="flex items-center justify-between mb-3 border-b border-indigo-900/40 pb-2">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="brain-circuit" class="w-5 h-5 text-indigo-400"></i>
+                        <h2 class="font-bold text-slate-200">AI编程知识充能舱</h2>
+                    </div>
+                    <span class="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">免费领金币</span>
+                </div>
+                
+                <p class="text-xs text-slate-400 mb-4">通过回答关于机器学习和智能小车控制算法的问题，为爪子的控制算法提供“算力能量”，答对即可增加金币！</p>
+                
+                <!-- 答题框 -->
+                <div id="quiz-box" class="bg-slate-950/80 rounded-xl p-4 border border-indigo-500/10 min-h-[140px] flex flex-col justify-between">
+                    <div class="text-xs text-slate-500 font-bold mb-1" id="quiz-category">分类: 机器学习基础</div>
+                    <p class="text-sm font-medium text-slate-200 leading-relaxed mb-3" id="quiz-question">读取中...</p>
+                    <div class="grid grid-cols-1 gap-2" id="quiz-options">
+                        <!-- 动态生成选项按钮 -->
+                    </div>
+                </div>
+                <!-- 答题反馈 -->
+                <div id="quiz-feedback" class="mt-2 text-xs text-center font-bold h-5 hidden"></div>
+            </div>
+
+            <!-- B. 抓手机构属性升级 -->
+            <div class="bg-slate-900 p-5 rounded-3xl border border-slate-800 shadow-xl">
+                <div class="flex items-center space-x-2 mb-4 border-b border-slate-800 pb-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-pink-400"></i>
+                    <h2 class="font-bold text-slate-200">爪子驱动控制（算法调优）</h2>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- 属性1：抓取强度 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="text-slate-400 flex items-center">
+                                <i data-lucide="hand-metal" class="w-3.5 h-3.5 mr-1 text-amber-400"></i>
+                                抓持保持力 (防止滑落)
+                            </span>
+                            <span class="font-bold text-amber-300" id="stat-grip">80%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden mb-2">
+                            <div id="bar-grip" class="bg-amber-400 h-2 transition-all duration-300" style="width: 80%"></div>
+                        </div>
+                        <button id="up-grip" class="w-full py-1.5 px-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-semibold rounded-lg flex justify-between items-center transition-all border border-slate-700">
+                            <span>升级防抖算法 (防滑落)</span>
+                            <span class="text-amber-400 font-bold" id="cost-grip">30 金币</span>
+                        </button>
+                    </div>
+
+                    <!-- 属性2：滑轨速度 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="text-slate-400 flex items-center">
+                                <i data-lucide="zap" class="w-3.5 h-3.5 mr-1 text-cyan-400"></i>
+                                电机水平移动速度
+                            </span>
+                            <span class="font-bold text-cyan-300" id="stat-speed">3.0 px/s</span>
+                        </div>
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden mb-2">
+                            <div id="bar-speed" class="bg-cyan-400 h-2 transition-all duration-300" style="width: 40%"></div>
+                        </div>
+                        <button id="up-speed" class="w-full py-1.5 px-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-semibold rounded-lg flex justify-between items-center transition-all border border-slate-700">
+                            <span>升级步进电机 (提移速)</span>
+                            <span class="text-amber-400 font-bold" id="cost-speed">25 金币</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- C. 已收集的娃娃展示（图鉴） -->
+            <div class="bg-slate-900 p-5 rounded-3xl border border-slate-800 shadow-xl flex-grow">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="package" class="w-5 h-5 text-emerald-400"></i>
+                        <h2 class="font-bold text-slate-200">娃娃收藏室 (图鉴)</h2>
+                    </div>
+                    <span class="text-xs text-slate-500" id="collection-count">0/5</span>
+                </div>
+
+                <div class="grid grid-cols-5 gap-2" id="gallery-container">
+                    <!-- 动态渲染五个娃娃，灰色代表未收集，点亮代表已收集 -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 底部状态与版权 -->
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-900/60 bg-slate-950 mt-6">
+        <p>© 2026 AI机器人与嵌入式算法课程教学课件 - 仿真物理沙盒 & 决策算法实验版</p>
+    </footer>
+
+    <!-- 弹窗模态框：玩法指南 -->
+    <div id="modal-help" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-rose-500/30 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button id="btn-close-help" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            
+            <h3 class="text-xl font-bold text-rose-400 mb-4 font-retro flex items-center">
+                <i data-lucide="gamepad-2" class="w-6 h-6 mr-2"></i> 经典抓娃娃机 玩法指南
+            </h3>
+            
+            <div class="space-y-4 text-slate-300 text-sm leading-relaxed">
+                <div>
+                    <h4 class="font-bold text-slate-100 flex items-center"><span class="w-2 h-2 rounded-full bg-rose-500 mr-2"></span> 基本操作</h4>
+                    <p class="pl-4 mt-1 text-slate-400">使用键盘快捷键 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-200">A</kbd>、<kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-200">D</kbd>（或控制面板上的方向按钮）来控制爪子水平移动。移到理想的位置后，点击<strong class="text-rose-400">红色巨型按钮</strong>（或按键盘<kbd class="px-4 py-0.5 bg-slate-800 rounded text-slate-200">空格键</kbd>）下落抓取！</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-100 flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span> 真实物理仿真</h4>
+                    <p class="pl-4 mt-1 text-slate-400">娃娃具有质量、摩擦力和弹性。在抓取上升过程中，爪子晃动可能导致娃娃因为重心和滑落概率滑脱爪子。提升<strong class="text-amber-400">“抓持保持力”</strong>，可以用算法平稳控制爪力，极大地降低意外滑落几率。</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-100 flex items-center"><span class="w-2 h-2 rounded-full bg-indigo-500 mr-2"></span> AI算力答题（免费充币）</h4>
+                    <p class="pl-4 mt-1 text-slate-400">当金币不足时，可以通过回答右侧“AI编程知识充能舱”中的AI控制算法、机器学习核心问题。每答对一题即可获取 <strong class="text-amber-300">+30金币</strong>！</p>
+                </div>
+                <div class="bg-rose-950/20 p-3 rounded-xl border border-rose-500/10 text-xs text-rose-300 flex items-start space-x-2">
+                    <i data-lucide="info" class="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-400"></i>
+                    <span><strong>特别提示</strong>：为了完美的拟真体验，每次下爪后抓手都会回到最左侧的<strong>出娃口 (Chute)</strong>，如果抓捕的娃娃在此过程中落入最左侧，即可视为成功捕获！</span>
+                </div>
+            </div>
+            
+            <button id="btn-start-playing" class="w-full mt-6 py-3 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg transition-all">
+                开启快乐抓取
+            </button>
+        </div>
+    </div>
+
+    <!-- 脚本逻辑 -->
+    <script>
+        // 初始化 Lucide 图标库
+        lucide.createIcons();
+
+        // ==========================================
+        // 1. WEB AUDIO API 音效合成引擎 (无需音频文件)
+        // ==========================================
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSynthSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'coin') {
+                // 金币落袋音效 (叮、叮)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5
+                osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } 
+            else if (type === 'move') {
+                // 爪子滑轨低鸣声
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(110, now);
+                osc.frequency.linearRampToValueAtTime(125, now + 0.15);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } 
+            else if (type === 'descend') {
+                // 下落音效
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(220, now + 0.5);
+                gainNode.gain.setValueAtTime(0.08, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } 
+            else if (type === 'grab') {
+                // 抓取合拢音效
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(350, now + 0.15);
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } 
+            else if (type === 'slip') {
+                // 滑落悲伤音效
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(330, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.4);
+                gainNode.gain.setValueAtTime(0.12, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } 
+            else if (type === 'success') {
+                // 抓获成功欢快旋律
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const noteOsc = audioCtx.createOscillator();
+                    const noteGain = audioCtx.createGain();
+                    noteOsc.connect(noteGain);
+                    noteGain.connect(audioCtx.destination);
+                    noteOsc.type = 'sine';
+                    noteOsc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                    noteGain.gain.setValueAtTime(0.12, now + idx * 0.12);
+                    noteGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.25);
+                    noteOsc.start(now + idx * 0.12);
+                    noteOsc.stop(now + idx * 0.12 + 0.25);
+                });
+            }
+            else if (type === 'quiz-right') {
+                // 答题正确
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.setValueAtTime(1174.66, now + 0.08);
+                gainNode.gain.setValueAtTime(0.12, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+            else if (type === 'quiz-wrong') {
+                // 答题错误
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(180, now + 0.12);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        // ==========================================
+        // 2. AI 知识问答数据集与答题机制
+        // ==========================================
+        const QUIZ_DATABASE = [
+            {
+                category: "机器学习基础",
+                question: "在监督学习(Supervised Learning)中，用于训练模型的核心要素是什么？",
+                options: [
+                    { text: "包含输入特征以及对应的目标标签 (Label)", correct: true },
+                    { text: "只有输入特征，完全没有参考标签", correct: false },
+                    { text: "仅使用极其巨大的随机矩阵", correct: false }
+                ]
+            },
+            {
+                category: "深度神经网络",
+                question: "深度学习模型（如ReLU）中，“激活函数”的最主要作用是什么？",
+                options: [
+                    { text: "加速运算过程，让权重缩减", correct: false },
+                    { text: "为网络引入“非线性”，使其能够拟合复杂的曲面和分类边界", correct: true },
+                    { text: "自动将损失值减少到0", correct: false }
+                ]
+            },
+            {
+                category: "深度学习诊断",
+                question: "如果一个模型在训练集上正确率达到99.9%，但是在测试集（新数据）上正确率只有40%，这种情况叫做什么？",
+                options: [
+                    { text: "欠拟合 (Underfitting)", correct: false },
+                    { text: "完美状态 (Global Optimum)", correct: false },
+                    { text: "过拟合 (Overfitting)", correct: true }
+                ]
+            },
+            {
+                category: "强化学习(RL)与控制",
+                question: "如果我们想用强化学习让“智能爪子”自动学习如何更省力地抓起娃娃，它的核心算法机制由哪三部分构成？",
+                options: [
+                    { text: "图像输入、语音输出、算力芯片", correct: false },
+                    { text: "状态 (State)、动作 (Action)、奖惩回报 (Reward)", correct: true },
+                    { text: "HTML标签、CSS样式、JS监听器", correct: false }
+                ]
+            },
+            {
+                category: "计算机视觉",
+                question: "在AI娃娃机中，如果需要视觉摄像头实时识别和定位不同玩偶的种类，最常使用哪种网络架构？",
+                options: [
+                    { text: "卷积神经网络 (CNN)", correct: true },
+                    { text: "循环神经网络 (RNN)", correct: false },
+                    { text: "生成对抗网络 (GAN)", correct: false }
+                ]
+            },
+            {
+                category: "机器人技术",
+                question: "当控制娃娃机的机械手水平行进到极限距离时，传感器限制进一步移动，这利用了机器人控制中什么概念？",
+                options: [
+                    { text: "软体仿真 (Soft Robotics)", correct: false },
+                    { text: "限位闭环控制 / 硬件中断保护", correct: true },
+                    { text: "无监督深度聚类", correct: false }
+                ]
+            }
+        ];
+
+        let currentQuizIndex = 0;
+
+        function loadQuiz() {
+            const quiz = QUIZ_DATABASE[currentQuizIndex];
+            document.getElementById('quiz-category').textContent = `分类: ${quiz.category}`;
+            document.getElementById('quiz-question').textContent = quiz.question;
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+            
+            quiz.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-2 px-3 text-xs bg-slate-900 hover:bg-slate-800 rounded-lg border border-indigo-500/10 text-slate-300 transition-all active:scale-[0.98] flex items-start space-x-2";
+                
+                const badge = document.createElement('span');
+                badge.className = "flex-shrink-0 w-5 h-5 bg-indigo-500/10 rounded-full border border-indigo-500/30 text-indigo-400 font-bold flex items-center justify-center text-[10px]";
+                badge.textContent = String.fromCharCode(65 + idx); // A, B, C...
+                
+                const txt = document.createElement('span');
+                txt.className = "flex-1";
+                txt.textContent = opt.text;
+
+                btn.appendChild(badge);
+                btn.appendChild(txt);
+                
+                btn.onclick = () => checkAnswer(opt, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(option, clickedButton) {
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden');
+            
+            // 禁用全部选项
+            const buttons = document.querySelectorAll('#quiz-options button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (option.correct) {
+                feedback.className = "mt-2 text-xs text-center font-bold h-5 text-emerald-400 animate-bounce";
+                feedback.textContent = "回答正确！脑力+1，获得金币 +30";
+                clickedButton.classList.add('border-emerald-500/50', 'bg-emerald-950/20');
+                
+                playSynthSound('quiz-right');
+                
+                // 加金币
+                gameState.coins += 30;
+                updateStatsUI();
+            } else {
+                feedback.className = "mt-2 text-xs text-center font-bold h-5 text-rose-400";
+                feedback.textContent = "回答错误，再思考一下吧！";
+                clickedButton.classList.add('border-rose-500/50', 'bg-rose-950/20');
+                
+                // 高亮显示正确选项
+                const idxOfCorrect = QUIZ_DATABASE[currentQuizIndex].options.findIndex(o => o.correct);
+                if (idxOfCorrect !== -1) {
+                    buttons[idxOfCorrect].classList.add('border-emerald-500/50', 'bg-emerald-950/10');
+                }
+                playSynthSound('quiz-wrong');
+            }
+
+            // 1.5秒后切到下一题
+            setTimeout(() => {
+                feedback.classList.add('hidden');
+                currentQuizIndex = (currentQuizIndex + 1) % QUIZ_DATABASE.length;
+                loadQuiz();
+            }, 2500);
+        }
+
+        // ==========================================
+        // 3. 娃娃属性定义与图鉴数据库
+        // ==========================================
+        const DOLL_TYPES = [
+            { id: 'bear', name: '呆萌布朗熊', color: '#b45309', radius: 26, points: 15, rarity: '普通', rarityColor: 'bg-slate-500/20 text-slate-300' },
+            { id: 'bunny', name: '粉嫩垂耳兔', color: '#ec4899', radius: 25, points: 15, rarity: '普通', rarityColor: 'bg-slate-500/20 text-slate-300' },
+            { id: 'panda', name: '国宝大熊猫', color: '#334155', radius: 28, points: 25, rarity: '罕见', rarityColor: 'bg-sky-500/20 text-sky-400' },
+            { id: 'cat', name: '和风招财猫', color: '#f59e0b', radius: 27, points: 50, rarity: '稀有', rarityColor: 'bg-amber-500/20 text-amber-400' },
+            { id: 'golden_egg', name: '赛博黄金蛋', color: '#fbbf24', radius: 24, points: 100, rarity: '传说', rarityColor: 'bg-rose-500/20 text-rose-400 animate-pulse' }
+        ];
+
+        // 玩家图鉴状态
+        const playerCollection = {
+            bear: 0,
+            bunny: 0,
+            panda: 0,
+            cat: 0,
+            golden_egg: 0
+        };
+
+        function renderGallery() {
+            const container = document.getElementById('gallery-container');
+            container.innerHTML = '';
+            
+            DOLL_TYPES.forEach(doll => {
+                const isCollected = playerCollection[doll.id] > 0;
+                
+                const card = document.createElement('div');
+                card.className = `flex flex-col items-center justify-between p-2 rounded-xl border transition-all ${
+                    isCollected 
+                    ? 'bg-slate-800/80 border-rose-500/30 shadow-md' 
+                    : 'bg-slate-950/40 border-slate-900 grayscale opacity-40'
+                }`;
+
+                // 手绘娃娃圆球头像模拟
+                const canvasIcon = document.createElement('canvas');
+                canvasIcon.width = 44;
+                canvasIcon.height = 44;
+                const ctx = canvasIcon.getContext('2d');
+                
+                // 在图鉴里微调绘制每个娃娃
+                drawMockDollForIcon(ctx, doll.id, 22, 22, doll.color);
+
+                const countBadge = document.createElement('span');
+                countBadge.className = "text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1.5 " + (isCollected ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400');
+                countBadge.textContent = isCollected ? `x${playerCollection[doll.id]}` : '未抓取';
+
+                const nameLabel = document.createElement('span');
+                nameLabel.className = "text-[9px] mt-1 text-slate-300 font-bold text-center truncate w-full";
+                nameLabel.textContent = doll.name.substring(2); // 取后面两字
+
+                card.appendChild(canvasIcon);
+                card.appendChild(nameLabel);
+                card.appendChild(countBadge);
+                container.appendChild(card);
+            });
+
+            // 更新图鉴统计
+            const totalTypesCollected = Object.values(playerCollection).filter(count => count > 0).length;
+            document.getElementById('collection-count').textContent = `${totalTypesCollected}/5`;
+        }
+
+        // ==========================================
+        // 4. CANVAS 娃娃机物理沙盒引擎
+        // ==========================================
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 常量配置
+        const CANVAS_WIDTH = 600;
+        const CANVAS_HEIGHT = 480;
+        const GRAVITY = 0.18;
+        const FRICTION = 0.985;
+        const CHUTE_WIDTH = 130;       // 玩偶出口滑道宽度 (最左侧)
+        const CHUTE_WALL_HEIGHT = 70;  // 滑道隔离墙高度
+        const FLOOR_OFFSET = 30;      // 底部垫层高度
+
+        // 娃娃机爪子对象
+        const claw = {
+            x: 360,          // 抓手水平x坐标
+            y: 40,           // 爪心高度
+            homeX: 65,       // 回程终点 (刚好在滑道正中央)
+            state: 'IDLE',   // 状态：IDLE(空闲), DESCENDING(下探), GRABBING(收缩抓捕), RETRACTING(收爪上升), HOMING(平移回程), RELEASING(张爪松放)
+            targetY: 0,      // 下探终点高度
+            maxDepth: 390,   // 最大下探限位
+            grabRange: 45,   // 抓取感应范围半径
+            closedProngs: 0, // 爪脚闭合度 (0代表最开, 1代表最合)
+            speed: 3.0,      // 平移速度 (可升级)
+            descendSpeed: 4.5, // 垂降上升速度
+            heldDoll: null,  // 抓获中的玩偶对象
+            angle: 0,        // 爪子当前摆角
+            shake: 0         // 摆动噪声 (用于模拟物理不稳定性)
+        };
+
+        // 娃娃数组
+        let dolls = [];
+        // 特效粒子
+        let particles = [];
+
+        // 游戏升级变量
+        const gameState = {
+            coins: 80,
+            trophies: 0,
+            gripPower: 0.80,    // 初始爪子强度：80% (每次成功概率决定娃娃晃动中是否滑落)
+            horizontalSpeed: 3.0,
+            gripLevel: 1,
+            speedLevel: 1
+        };
+
+        // 模拟摇杆视觉反馈
+        function updateJoystickBall(dx, dy) {
+            const ball = document.getElementById('joystick-ball');
+            ball.style.transform = `translate(${dx}px, ${dy}px)`;
+        }
+
+        // 升级系统动作
+        document.getElementById('up-grip').onclick = () => {
+            const cost = 15 + gameState.gripLevel * 15;
+            if (gameState.coins >= cost) {
+                if (gameState.gripLevel >= 5) {
+                    alert("防滑落抖动控制已升级至顶层AI强化学习算法！(100%保持力)");
+                    return;
+                }
+                gameState.coins -= cost;
+                gameState.gripLevel++;
+                gameState.gripPower += 0.05;
+                if (gameState.gripPower > 1.0) gameState.gripPower = 1.0;
+                playSynthSound('coin');
+                updateStatsUI();
+            } else {
+                showToast("算力/金币余额不足！去充能舱答题赚取吧！");
+            }
+        };
+
+        document.getElementById('up-speed').onclick = () => {
+            const cost = 10 + gameState.speedLevel * 15;
+            if (gameState.coins >= cost) {
+                gameState.coins -= cost;
+                gameState.speedLevel++;
+                gameState.horizontalSpeed += 0.8;
+                claw.speed = gameState.horizontalSpeed;
+                playSynthSound('coin');
+                updateStatsUI();
+            } else {
+                showToast("算力/金币余额不足！去充能舱答题赚取吧！");
+            }
+        };
+
+        function updateStatsUI() {
+            document.getElementById('coin-count').textContent = gameState.coins;
+            document.getElementById('trophy-count').textContent = gameState.trophies;
+            
+            // 抓力显示
+            const gripPercent = Math.round(gameState.gripPower * 100);
+            document.getElementById('stat-grip').textContent = `${gripPercent}%`;
+            document.getElementById('bar-grip').style.width = `${gripPercent}%`;
+            document.getElementById('cost-grip').textContent = `${15 + gameState.gripLevel * 15} 金币`;
+            if (gameState.gripLevel >= 5) {
+                document.getElementById('up-grip').innerHTML = `<span>AI自适应算法 (MAX)</span> <span class="text-emerald-400 font-bold">已满级</span>`;
+                document.getElementById('up-grip').disabled = true;
+            }
+
+            // 速度显示
+            document.getElementById('stat-speed').textContent = `${gameState.horizontalSpeed.toFixed(1)} px/s`;
+            document.getElementById('bar-speed').style.width = `${(gameState.horizontalSpeed / 8) * 100}%`;
+            document.getElementById('cost-speed').textContent = `${10 + gameState.speedLevel * 15} 金币`;
+            if (gameState.speedLevel >= 5) {
+                document.getElementById('up-speed').innerHTML = `<span>超高速滑道 (MAX)</span> <span class="text-emerald-400 font-bold">已满级</span>`;
+                document.getElementById('up-speed').disabled = true;
+            }
+
+            renderGallery();
+        }
+
+        // ==========================================
+        // 5. 简易2D冲量物理引擎实现 (重力 + 圆形碰撞)
+        // ==========================================
+        class Doll {
+            constructor(x, y, typeInfo) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.r = typeInfo.radius;
+                this.id = typeInfo.id;
+                this.name = typeInfo.name;
+                this.color = typeInfo.color;
+                this.points = typeInfo.points;
+                this.angle = (Math.random() - 0.5) * 0.5; // 旋转角
+                this.angularVelocity = 0;
+                this.isGrabbed = false;
+                this.weight = typeInfo.id === 'golden_egg' ? 1.6 : 1.0; // 黄金蛋较重
+            }
+        }
+
+        // 补货娃娃：在屏幕中上方下落产生杂乱堆积
+        function restockMachine() {
+            dolls = [];
+            // 生成 22 只玩偶，保证物理堆叠充实
+            for (let i = 0; i < 22; i++) {
+                // 避开左侧出娃滑道 (x: 0~130)
+                const spawnX = CHUTE_WIDTH + 40 + Math.random() * (CANVAS_WIDTH - CHUTE_WIDTH - 80);
+                const spawnY = -50 - (i * 35); // 阶梯延迟落入
+                const typeInfo = DOLL_TYPES[Math.floor(Math.random() * DOLL_TYPES.length)];
+                
+                // 偶尔调整金蛋的概率
+                dolls.push(new Doll(spawnX, spawnY, typeInfo));
+            }
+            playSynthSound('success');
+        }
+
+        // 粒子溅射系统
+        function createPoof(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6 - 2,
+                    r: 3 + Math.random() * 4,
+                    color: color,
+                    alpha: 1.0,
+                    life: 30 + Math.random() * 20
+                });
+            }
+        }
+
+        function updatePhysics() {
+            // A. 更新娃娃
+            for (let i = 0; i < dolls.length; i++) {
+                const d = dolls[i];
+
+                if (d.isGrabbed) {
+                    // 如果被抓住了，位置硬绑定至爪尖，并进行微幅的单摆运动噪声
+                    d.x = claw.x + Math.sin(claw.angle) * 35;
+                    d.y = claw.y + 35 + Math.cos(claw.angle) * 10;
+                    d.vx = 0;
+                    d.vy = 0;
+                    d.angle = claw.angle;
+                    continue;
+                }
+
+                // 受到重力作用
+                d.vy += GRAVITY * d.weight;
+                
+                // 速度累加
+                d.x += d.vx;
+                d.y += d.vy;
+                d.angle += d.angularVelocity;
+
+                // 阻力衰减
+                d.vx *= FRICTION;
+                d.vy *= FRICTION;
+                d.angularVelocity *= 0.95;
+
+                // ---- 碰撞边界约束 ----
+                const floorY = CANVAS_HEIGHT - FLOOR_OFFSET;
+
+                // 1. 如果掉进最左侧出娃通道
+                if (d.x < CHUTE_WIDTH) {
+                    // 如果掉到最底下，触发成功抓捕！
+                    if (d.y > CANVAS_HEIGHT + 30) {
+                        triggerCatchSuccess(d);
+                        dolls.splice(i, 1);
+                        i--;
+                        continue;
+                    }
+                    
+                    // 通道左边界
+                    if (d.x - d.r < 8) {
+                        d.x = 8 + d.r;
+                        d.vx = Math.abs(d.vx) * 0.3;
+                    }
+                    // 通道底部限制
+                    if (d.y + d.r > CANVAS_HEIGHT) {
+                        // 在出娃口，可继续下滑
+                    }
+                } else {
+                    // 2. 右侧娃娃区边界约束
+                    // 地面边界
+                    if (d.y + d.r > floorY) {
+                        d.y = floorY - d.r;
+                        d.vy = -Math.abs(d.vy) * 0.25; // 弹力
+                        d.vx *= 0.85; // 摩擦
+                    }
+
+                    // 右侧墙壁
+                    if (d.x + d.r > CANVAS_WIDTH - 8) {
+                        d.x = CANVAS_WIDTH - 8 - d.r;
+                        d.vx = -Math.abs(d.vx) * 0.4;
+                    }
+
+                    // 左侧阻断滑道挡板壁 (x = CHUTE_WIDTH, y: 从底部向上伸出 CHUTE_WALL_HEIGHT)
+                    const blockY = CANVAS_HEIGHT - FLOOR_OFFSET - CHUTE_WALL_HEIGHT;
+                    if (d.x - d.r < CHUTE_WIDTH) {
+                        if (d.y > blockY - 10) {
+                            d.x = CHUTE_WIDTH + d.r;
+                            d.vx = Math.abs(d.vx) * 0.3;
+                        } else if (d.y + d.r > blockY && d.x < CHUTE_WIDTH + 15) {
+                            // 滑道挡板顶部边缘摩擦挤压
+                            d.y = blockY - d.r;
+                            d.vy = -Math.abs(d.vy) * 0.2;
+                            d.vx += 0.3; // 往右滚一滚
+                        }
+                    }
+                }
+            }
+
+            // B. 娃娃与娃娃圆形碰撞求解 (冲量分配法)
+            for (let i = 0; i < dolls.length; i++) {
+                for (let j = i + 1; j < dolls.length; j++) {
+                    const d1 = dolls[i];
+                    const d2 = dolls[j];
+
+                    if (d1.isGrabbed || d2.isGrabbed) continue;
+
+                    const dx = d2.x - d1.x;
+                    const dy = d2.y - d1.y;
+                    const dist = Math.hypot(dx, dy);
+                    const minDist = d1.r + d2.r;
+
+                    if (dist < minDist) {
+                        // 重合解决
+                        const overlap = minDist - dist;
+                        const nx = dx / (dist || 1);
+                        const ny = dy / (dist || 1);
+
+                        // 平分位移防止重叠
+                        d1.x -= nx * overlap * 0.5;
+                        d1.y -= ny * overlap * 0.5;
+                        d2.x += nx * overlap * 0.5;
+                        d2.y += ny * overlap * 0.5;
+
+                        // 计算相对速度投影（求冲击冲量）
+                        const rvx = d2.vx - d1.vx;
+                        const rvy = d2.vy - d1.vy;
+                        const speedProj = rvx * nx + rvy * ny;
+
+                        if (speedProj < 0) { // 彼此相向运动
+                            const rest = 0.25; // 碰撞衰减因子
+                            const impulse = -(1 + rest) * speedProj / 2;
+                            
+                            d1.vx -= nx * impulse;
+                            d1.vy -= ny * impulse;
+                            d2.vx += nx * impulse;
+                            d2.vy += ny * impulse;
+
+                            // 产生微小扭矩
+                            d1.angularVelocity -= (rvx * -ny + rvy * nx) * 0.005;
+                            d2.angularVelocity += (rvx * -ny + rvy * nx) * 0.005;
+                        }
+                    }
+                }
+            }
+
+            // C. 粒子物理更新
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.05; // 粒子微重力
+                p.life--;
+                p.alpha = p.life / 50;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        // ==========================================
+        // 6. 抓放动作状态机控制 (核心决策程序)
+        // ==========================================
+        let keys = {};
+        window.addEventListener('keydown', e => {
+            if (['Space', 'KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault(); // 阻止浏览器网页滚动
+            }
+            keys[e.code] = true;
+            if (e.code === 'Space') {
+                triggerGrab();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.code] = false;
+        });
+
+        // 按键状态更新
+        function handleControls() {
+            if (claw.state !== 'IDLE') return;
+
+            if (keys['KeyA'] || keys['ArrowLeft']) {
+                moveClawLeft();
+            } else if (keys['KeyD'] || keys['ArrowRight']) {
+                moveClawRight();
+            } else {
+                updateJoystickBall(0, 0);
+            }
+        }
+
+        function moveClawLeft() {
+            if (claw.state !== 'IDLE') return;
+            // 控制不能越界进入滑道太深，或者右边贴墙
+            claw.x = Math.max(CHUTE_WIDTH + 15, claw.x - claw.speed);
+            updateJoystickBall(-20, 0);
+            playSynthSound('move');
+        }
+
+        function moveClawRight() {
+            if (claw.state !== 'IDLE') return;
+            claw.x = Math.min(CANVAS_WIDTH - 30, claw.x + claw.speed);
+            updateJoystickBall(20, 0);
+            playSynthSound('move');
+        }
+
+        function triggerGrab() {
+            if (claw.state !== 'IDLE') return;
+            if (gameState.coins < 10) {
+                showToast("抓取失败！金币不足，请先答右侧AI题目充能！");
+                return;
+            }
+
+            // 扣除硬币
+            gameState.coins -= 10;
+            updateStatsUI();
+            playSynthSound('descend');
+
+            claw.state = 'DESCENDING';
+            claw.targetY = claw.maxDepth;
+            
+            // 预测最高碰撞娃娃高度，优化深度
+            let minCollideY = claw.maxDepth;
+            for (let d of dolls) {
+                // 如果娃娃在机械手投影之下，爪尖碰到娃娃时即可停止下探并直接收紧
+                if (Math.abs(d.x - claw.x) < d.r + 10 && d.y - d.r < minCollideY) {
+                    minCollideY = d.y - d.r + 12;
+                }
+            }
+            claw.targetY = Math.min(claw.maxDepth, Math.max(180, minCollideY));
+        }
+
+        // 处理爪子的机械移动逻辑状态机
+        function updateClawLogic() {
+            if (claw.state === 'IDLE') {
+                // 爪爪自然微晃动
+                claw.angle = Math.sin(Date.now() / 300) * 0.015;
+                claw.closedProngs = 0.15; // 爪脚微微开合，富有张力
+            } 
+            else if (claw.state === 'DESCENDING') {
+                claw.closedProngs = 0.0; // 全开状态下探
+                claw.y += claw.descendSpeed;
+                
+                // 下探到位，准备捏合
+                if (claw.y >= claw.targetY) {
+                    claw.state = 'GRABBING';
+                    playSynthSound('grab');
+                    
+                    // 抓捕判定：寻找感应区重合度最高的娃娃
+                    setTimeout(() => {
+                        let bestTarget = null;
+                        let minDist = claw.grabRange;
+
+                        for (let d of dolls) {
+                            const dist = Math.hypot(d.x - claw.x, d.y - (claw.y + 35));
+                            if (dist < minDist) {
+                                minDist = dist;
+                                bestTarget = d;
+                            }
+                        }
+
+                        if (bestTarget) {
+                            claw.heldDoll = bestTarget;
+                            bestTarget.isGrabbed = true;
+                        }
+
+                        // 收拢完毕后拉起
+                        claw.state = 'RETRACTING';
+                        playSynthSound('descend');
+                    }, 400);
+                }
+            } 
+            else if (claw.state === 'GRABBING') {
+                // 爪脚逐渐合拢，插到娃娃底部
+                if (claw.closedProngs < 1.0) claw.closedProngs += 0.15;
+            } 
+            else if (claw.state === 'RETRACTING') {
+                // 高度爬升
+                claw.y -= claw.descendSpeed;
+                claw.closedProngs = 0.95; // 抓紧力状态
+
+                // ---- AI物理特色：回程晃动滑落概率模拟 ----
+                if (claw.heldDoll) {
+                    // 自定义单摆物理晃角
+                    claw.angle = Math.sin(Date.now() / 150) * 0.07 * (claw.heldDoll.weight);
+
+                    // 如果升级算法不够好，回拉时有极小震动可能导致滑出爪爪！
+                    const slipThreshold = gameState.gripPower; // 例如：0.8
+                    const currentShakeFactor = Math.random();
+                    
+                    // 每一个物理帧存在1/120概率检测滑脱，重量越大，越容易滑脱
+                    if (currentShakeFactor > slipThreshold + 0.18 / claw.heldDoll.weight) {
+                        // 抖落！
+                        const slippedDoll = claw.heldDoll;
+                        slippedDoll.isGrabbed = false;
+                        slippedDoll.vx = Math.sin(claw.angle) * 3 + (Math.random() - 0.5);
+                        slippedDoll.vy = -1;
+                        slippedDoll.angularVelocity = (Math.random() - 0.5) * 0.2;
+                        
+                        claw.heldDoll = null;
+                        playSynthSound('slip');
+                        showToast(`太可惜了！[${slippedDoll.name}] 从爪中滑落了...`);
+                    }
+                }
+
+                if (claw.y <= 40) {
+                    claw.y = 40;
+                    claw.state = 'HOMING'; // 进入回程模式
+                }
+            } 
+            else if (claw.state === 'HOMING') {
+                // 平移向出娃道
+                const dx = claw.homeX - claw.x;
+                if (Math.abs(dx) > claw.speed) {
+                    claw.x += Math.sign(dx) * claw.speed;
+                    // 平移时向相反侧晃动
+                    claw.angle = -Math.sign(dx) * 0.04;
+                } else {
+                    claw.x = claw.homeX;
+                    claw.angle = 0;
+                    claw.state = 'RELEASING'; // 到位，松爪
+                }
+            } 
+            else if (claw.state === 'RELEASING') {
+                // 爪子合拢松开
+                if (claw.closedProngs > 0.0) {
+                    claw.closedProngs -= 0.1;
+                } else {
+                    if (claw.heldDoll) {
+                        // 抛离到滑道中心下落
+                        const d = claw.heldDoll;
+                        d.isGrabbed = false;
+                        d.vx = 0;
+                        d.vy = 1; // 给予加速向下
+                        claw.heldDoll = null;
+                    }
+                    
+                    // 等待半秒归位
+                    setTimeout(() => {
+                        claw.state = 'IDLE';
+                    }, 500);
+                }
+            }
+        }
+
+        // ==========================================
+        // 7. 捕捉成功与界面交互
+        // ==========================================
+        function triggerCatchSuccess(doll) {
+            // 播放胜利旋律
+            playSynthSound('success');
+            
+            // 爆粒子
+            createPoof(doll.x, CANVAS_HEIGHT - 30, doll.color);
+
+            // 更新用户资产
+            gameState.coins += doll.points;
+            gameState.trophies += 1;
+            playerCollection[doll.id] = (playerCollection[doll.id] || 0) + 1;
+
+            // 飘字Toast提示
+            const rarityTag = doll.id === 'golden_egg' ? '👑 传说级' : '✨';
+            showToast(`成功抓获 [${doll.name}]！获得 ${rarityTag} +${doll.points} 金币！`);
+
+            updateStatsUI();
+        }
+
+        function showToast(text) {
+            const toast = document.getElementById('float-toast');
+            document.getElementById('toast-text').textContent = text;
+            toast.style.transform = 'translate(-50%, -10px) scale(1)';
+            
+            setTimeout(() => {
+                toast.style.transform = 'translate(-50%, 0) scale(0)';
+            }, 3000);
+        }
+
+        // 控制区各绑定
+        document.getElementById('btn-left').addEventListener('mousedown', () => { keys['KeyA'] = true; });
+        document.getElementById('btn-left').addEventListener('mouseup', () => { keys['KeyA'] = false; });
+        document.getElementById('btn-left').addEventListener('mouseleave', () => { keys['KeyA'] = false; });
+        
+        document.getElementById('btn-right').addEventListener('mousedown', () => { keys['KeyD'] = true; });
+        document.getElementById('btn-right').addEventListener('mouseup', () => { keys['KeyD'] = false; });
+        document.getElementById('btn-right').addEventListener('mouseleave', () => { keys['KeyD'] = false; });
+        
+        // 触屏端支持
+        document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); keys['KeyA'] = true; });
+        document.getElementById('btn-left').addEventListener('touchend', (e) => { e.preventDefault(); keys['KeyA'] = false; });
+        document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); keys['KeyD'] = true; });
+        document.getElementById('btn-right').addEventListener('touchend', (e) => { e.preventDefault(); keys['KeyD'] = false; });
+
+        document.getElementById('btn-grab').onclick = () => { triggerGrab(); };
+        document.getElementById('btn-restock').onclick = () => { restockMachine(); };
+
+        // 弹窗逻辑
+        const modal = document.getElementById('modal-help');
+        document.getElementById('btn-help').onclick = () => { modal.classList.remove('hidden'); };
+        document.getElementById('btn-close-help').onclick = () => { modal.classList.add('hidden'); };
+        document.getElementById('btn-start-playing').onclick = () => { modal.classList.add('hidden'); };
+
+        // ==========================================
+        // 8. 绘制系统 (纯 Canvas 高拟真视觉渲染)
+        // ==========================================
+        
+        // 渲染单帧
+        function draw() {
+            // A. 清空并绘制背景
+            ctx.fillStyle = '#0b1329';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // B. 绘制娃娃机后壁与霓虹LED灯带
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < CANVAS_WIDTH; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, CANVAS_HEIGHT);
+                ctx.stroke();
+            }
+
+            // 绘制左侧滑道区域装饰隔板
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, CHUTE_WIDTH, CANVAS_HEIGHT);
+            
+            // 绘制滑道右侧边缘高透LED
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#f43f5e';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(CHUTE_WIDTH, CANVAS_HEIGHT - FLOOR_OFFSET);
+            ctx.lineTo(CHUTE_WIDTH, CANVAS_HEIGHT - FLOOR_OFFSET - CHUTE_WALL_HEIGHT);
+            ctx.stroke();
+            ctx.shadowBlur = 0; // 重置阴影防止降级卡顿
+
+            // C. 绘制娃娃
+            for (let d of dolls) {
+                ctx.save();
+                ctx.translate(d.x, d.y);
+                ctx.rotate(d.angle);
+                
+                // 绘制娃娃主体外包阴影
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetY = 3;
+
+                drawAnimalDoll(ctx, d.id, d.color, d.r);
+                
+                ctx.restore();
+            }
+
+            // D. 绘制前置玻璃护档及挡板
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(CHUTE_WIDTH, CANVAS_HEIGHT - FLOOR_OFFSET - CHUTE_WALL_HEIGHT, 8, CHUTE_WALL_HEIGHT);
+
+            // 底部堆沙土灰色海绵垫
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(CHUTE_WIDTH, CANVAS_HEIGHT - FLOOR_OFFSET, CANVAS_WIDTH - CHUTE_WIDTH, FLOOR_OFFSET);
+            
+            // 出娃口底部管道
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, CANVAS_HEIGHT - 20, CHUTE_WIDTH, 20);
+
+            // E. 绘制爪子滑轮及吊索
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(claw.x, 0);
+            ctx.lineTo(claw.x, claw.y);
+            ctx.stroke();
+
+            // 绘制滑轮小车壳
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(claw.x - 20, 0, 40, 15);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(claw.x - 10, 5, 20, 10);
+
+            // 绘制爪子主金属盒
+            ctx.save();
+            ctx.translate(claw.x, claw.y);
+            ctx.rotate(claw.angle);
+
+            // 爪子金属头部
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(-12, 0, 24, 15);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(-15, 15, 30, 12);
+
+            // 绘制左右及后侧三只物理爪片
+            // 根据 closedProngs 动态调整弯曲圆弧和旋转角度
+            const prongs = [-1, 1]; // 简化为左和右对称受力结构
+            prongs.forEach(side => {
+                ctx.save();
+                ctx.scale(side, 1);
+
+                // 根据合拢系数弯曲弧度
+                // 0.0 -> 开展 (角度 -35度)
+                // 1.0 -> 闭紧 (角度 15度)
+                const rot = -0.6 + (claw.closedProngs * 0.85);
+
+                ctx.translate(10, 20);
+                ctx.rotate(rot);
+
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                
+                // 双段关节手臂
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(15, 12, 5, 30);
+                ctx.stroke();
+
+                // 抓片底端防护塑胶软垫
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(5, 30, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            });
+
+            ctx.restore();
+
+            // F. 绘制粒子特效
+            for (let p of particles) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // G. 绘制顶部LED灯带色彩动画
+            const ledHue = (Date.now() / 20) % 360;
+            ctx.fillStyle = `hsla(${ledHue}, 70%, 50%, 0.15)`;
+            ctx.fillRect(0, 0, CANVAS_WIDTH, 8);
+        }
+
+        // ==========================================
+        // 9. 纯 CANVAS 矢量手绘各类超萌玩偶
+        // ==========================================
+        function drawAnimalDoll(ctx, id, baseColor, r) {
+            ctx.fillStyle = baseColor;
+            
+            if (id === 'bear') {
+                // 1. 呆萌小熊
+                // 双耳
+                ctx.beginPath();
+                ctx.arc(-r*0.6, -r*0.6, r*0.35, 0, Math.PI*2);
+                ctx.arc(r*0.6, -r*0.6, r*0.35, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#fca5a5'; // 内耳粉红
+                ctx.beginPath();
+                ctx.arc(-r*0.6, -r*0.6, r*0.2, 0, Math.PI*2);
+                ctx.arc(r*0.6, -r*0.6, r*0.2, 0, Math.PI*2);
+                ctx.fill();
+
+                // 脸部圆体
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, Math.PI*2);
+                ctx.fill();
+
+                // 奶油色大嘴套
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.ellipse(0, r*0.2, r*0.42, r*0.3, 0, 0, Math.PI*2);
+                ctx.fill();
+
+                // 眼睛、小黑鼻、X嘴
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(-r*0.3, -r*0.1, 3, 0, Math.PI*2);
+                ctx.arc(r*0.3, -r*0.1, 3, 0, Math.PI*2);
+                ctx.fill();
+
+                // 鼻子
+                ctx.beginPath();
+                ctx.ellipse(0, r*0.1, 4, 2.5, 0, 0, Math.PI*2);
+                ctx.fill();
+                
+                // 嘴线
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(0, r*0.1);
+                ctx.quadraticCurveTo(-4, r*0.22, -6, r*0.18);
+                ctx.moveTo(0, r*0.1);
+                ctx.quadraticCurveTo(4, r*0.22, 6, r*0.18);
+                ctx.stroke();
+
+                // 脸颊腮红
+                ctx.fillStyle = '#f43f5e';
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.arc(-r*0.55, r*0.15, 4, 0, Math.PI*2);
+                ctx.arc(r*0.55, r*0.15, 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            } 
+            else if (id === 'bunny') {
+                // 2. 粉嫩兔兔
+                // 长长垂耳
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.ellipse(-r*0.5, -r*0.5, r*0.22, r*0.7, Math.PI/12, 0, Math.PI*2);
+                ctx.ellipse(r*0.5, -r*0.5, r*0.22, r*0.7, -Math.PI/12, 0, Math.PI*2);
+                ctx.fill();
+                // 浅粉内耳
+                ctx.fillStyle = '#fbcfe8';
+                ctx.beginPath();
+                ctx.ellipse(-r*0.5, -r*0.5, r*0.1, r*0.5, Math.PI/12, 0, Math.PI*2);
+                ctx.ellipse(r*0.5, -r*0.5, r*0.1, r*0.5, -Math.PI/12, 0, Math.PI*2);
+                ctx.fill();
+
+                // 主体脸蛋
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, Math.PI*2);
+                ctx.fill();
+
+                // 大萌眼
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(-r*0.3, -r*0.05, 4, 0, Math.PI*2);
+                ctx.arc(r*0.3, -r*0.05, 4, 0, Math.PI*2);
+                ctx.fill();
+                // 眼部高光
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-r*0.33, -r*0.1, 1.5, 0, Math.PI*2);
+                ctx.arc(r*0.27, -r*0.1, 1.5, 0, Math.PI*2);
+                ctx.fill();
+
+                // 樱桃三角小嘴
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-3, r*0.15);
+                ctx.lineTo(0, r*0.22);
+                ctx.lineTo(3, r*0.15);
+                ctx.stroke();
+
+                // 腮红
+                ctx.fillStyle = '#ec4899';
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.arc(-r*0.5, r*0.15, 5, 0, Math.PI*2);
+                ctx.arc(r*0.5, r*0.15, 5, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            } 
+            else if (id === 'panda') {
+                // 3. 国宝大熊猫
+                // 黑色圆耳
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(-r*0.65, -r*0.6, r*0.3, 0, Math.PI*2);
+                ctx.arc(r*0.65, -r*0.6, r*0.3, 0, Math.PI*2);
+                ctx.fill();
+
+                // 头部
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, Math.PI*2);
+                ctx.fill();
+
+                // 标志性黑眼圈
+                ctx.fillStyle = '#0f172a';
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(-r*0.35, -r*0.05, r*0.22, r*0.32, Math.PI/6, 0, Math.PI*2);
+                ctx.ellipse(r*0.35, -r*0.05, r*0.22, r*0.32, -Math.PI/6, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+
+                // 小白瞳
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-r*0.3, -r*0.05, 3, 0, Math.PI*2);
+                ctx.arc(r*0.3, -r*0.05, 3, 0, Math.PI*2);
+                ctx.fill();
+
+                // 鼻子
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.ellipse(0, r*0.2, 5, 3, 0, 0, Math.PI*2);
+                ctx.fill();
+            } 
+            else if (id === 'cat') {
+                // 4. 和风招财猫
+                // 三角尖耳
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.moveTo(-r*0.8, -r*0.4);
+                ctx.lineTo(-r*0.3, -r*0.9);
+                ctx.lineTo(-r*0.2, -r*0.3);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(r*0.8, -r*0.4);
+                ctx.lineTo(r*0.3, -r*0.9);
+                ctx.lineTo(r*0.2, -r*0.3);
+                ctx.closePath();
+                ctx.fill();
+
+                // 红色内耳
+                ctx.fillStyle = '#f87171';
+                ctx.beginPath();
+                ctx.moveTo(-r*0.65, -r*0.45);
+                ctx.lineTo(-r*0.35, -r*0.75);
+                ctx.lineTo(-r*0.3, -r*0.35);
+                ctx.closePath();
+                ctx.fill();
+
+                // 脸庞
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, Math.PI*2);
+                ctx.fill();
+
+                // 红色大领结项圈
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-r*0.6, r*0.7, r*1.2, 8);
+                // 金色大铃铛
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(0, r*0.82, 6, 0, Math.PI*2);
+                ctx.fill();
+
+                // 眯眯眼 (幸福曲线)
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.arc(-r*0.35, 0, 5, Math.PI, 0, false);
+                ctx.arc(r*0.35, 0, 5, Math.PI, 0, false);
+                ctx.stroke();
+
+                // 招财猫胡须
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-r*0.6, 5); ctx.lineTo(-r*0.85, 3);
+                ctx.moveTo(-r*0.6, 12); ctx.lineTo(-r*0.88, 14);
+                ctx.moveTo(r*0.6, 5); ctx.lineTo(r*0.85, 3);
+                ctx.moveTo(r*0.6, 12); ctx.lineTo(r*0.88, 14);
+                ctx.stroke();
+
+                // 粉萌小鼻子
+                ctx.fillStyle = '#fca5a5';
+                ctx.beginPath();
+                ctx.arc(0, r*0.15, 3.5, 0, Math.PI*2);
+                ctx.fill();
+            } 
+            else if (id === 'golden_egg') {
+                // 5. 赛博黄金蛋 (高反光立体球)
+                const grad = ctx.createRadialGradient(-5, -8, 2, 0, 0, r);
+                grad.addColorStop(0, '#fffbeb');
+                grad.addColorStop(0.3, '#fbbf24');
+                grad.addColorStop(1, '#b45309');
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, r*0.85, r, 0, 0, Math.PI*2);
+                ctx.fill();
+
+                // 星形反光斑装饰
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 0.8;
+                ctx.beginPath();
+                ctx.arc(r*0.25, -r*0.3, 3, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // 用于右侧图鉴Icon静态手绘模拟
+        function drawMockDollForIcon(ctx, id, cx, cy, baseColor) {
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, 0, 44, 44);
+            ctx.save();
+            ctx.translate(cx, cy);
+            drawAnimalDoll(ctx, id, baseColor, 15);
+            ctx.restore();
+        }
+
+        // ==========================================
+        // 10. 初始化与游戏循环运行主程序
+        // ==========================================
+        function initGame() {
+            // 装载第一题
+            currentQuizIndex = Math.floor(Math.random() * QUIZ_DATABASE.length);
+            loadQuiz();
+            
+            // 首次铺货
+            restockMachine();
+            
+            // 数据重置并挂载UI
+            gameState.coins = 80;
+            gameState.trophies = 0;
+            updateStatsUI();
+
+            // 弹出说明书
+            setTimeout(() => {
+                modal.classList.remove('hidden');
+            }, 500);
+
+            // 启动游戏无限帧渲染循环
+            tick();
+        }
+
+        function tick() {
+            // A. 获取键盘和游戏控制信号
+            handleControls();
+            
+            // B. 物理碰撞与位置刷新
+            updatePhysics();
+
+            // C. 爪子动作状态机决策
+            updateClawLogic();
+
+            // D. 画面重绘
+            draw();
+
+            requestAnimationFrame(tick);
+        }
+
+        // 窗口加载完成后启动
+        window.onload = function() {
+            initGame();
+        };
+
+    </script>
+</body>
+</html>
