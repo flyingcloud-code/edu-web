@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>惊天魔盗团 - 控雨魔法</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #050914; /* 偏暗夜蓝的背景调色 */
+            color: #fff; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        /* 主雨滴画布，全屏覆盖 */
+        #rain_canvas { 
+            display: block; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+        }
+        /* UI 界面层 */
+        .ui-layer { 
+            position: absolute; 
+            top: 30px; 
+            left: 30px; 
+            z-index: 2; 
+            pointer-events: none; 
+        }
+        #status { 
+            font-size: 28px; 
+            font-weight: bold; 
+            text-shadow: 0 0 15px rgba(100, 200, 255, 0.8); 
+            transition: color 0.3s;
+        }
+        .instructions { 
+            margin-top: 15px; 
+            font-size: 16px; 
+            line-height: 1.8;
+            color: #b0c4de; 
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+        }
+        /* 摄像头小窗预览 */
+        #output_canvas { 
+            position: absolute; 
+            bottom: 30px; 
+            right: 30px; 
+            width: 240px; 
+            height: 180px;
+            border: 2px solid rgba(255,255,255,0.2); 
+            border-radius: 12px; 
+            z-index: 2; 
+            transform: scaleX(-1); /* 镜像翻转，符合照镜子习惯 */
+            background: #000;
+        }
+        .loading { color: #f39c12; }
+        .active { color: #2ecc71; }
+    </style>
+</head>
+<body>
+
+    <div class="ui-layer">
+        <div id="status" class="loading">正在初始化视觉 AI 模型...</div>
+        <div class="instructions">
+            <b>魔法手势指南：</b><br>
+            ✋ <b>张开手掌</b>：正常暴雨 (重力下落)<br>
+            ✊ <b>握紧拳头</b>：时间静止 (悬浮半空)<br>
+            ☝️ <b>伸出食指</b>：雨滴升格 (反重力倒流)
+        </div>
+    </div>
+
+    <video id="input_video" style="display:none;"></video>
+    <canvas id="output_canvas" width="320" height="240"></canvas>
+    <canvas id="rain_canvas"></canvas>
+
+    <script>
+        // ==========================================
+        // 1. 雨滴粒子系统设置
+        // ==========================================
+        const canvas = document.getElementById('rain_canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 核心动力学参数
+        let currentSpeed = 15; // 当前速度
+        let targetSpeed = 15;  // 目标速度（用于平滑过渡）
+        let baseJitter = 0;    // 悬浮时的微颤动幅度
+        
+        class Raindrop {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * height; // 初始随机分布在屏幕各处
+            }
+            
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * -100; // 从顶部上方开始
+                this.z = Math.random() * 0.8 + 0.2; // 深度值(0.2~1.0)，用于视差效果
+                this.length = (Math.random() * 20 + 10) * this.z;
+                this.baseOpacity = this.z;
+            }
+
+            update() {
+                // 如果雨滴静止，添加非常微小的随机上下抖动，增强悬浮真实感
+                let jitter = baseJitter > 0 ? (Math.random() - 0.5) * baseJitter : 0;
+                
+                // 纵向位置更新
+                this.y += currentSpeed * this.z + jitter;
+
+                // 边界处理
+                if (currentSpeed > 0 && this.y > height) {
+                    this.reset();
+                } else if (currentSpeed < 0 && this.y < -this.length) {
+                    // 升格倒流时，飘出顶部后从底部重生
+                    this.y = height + this.length;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                // 雨丝的长度受速度影响（运动模糊），速度越快拉得越长
+                let dynamicLength = this.length * (Math.abs(currentSpeed) / 15);
+                // 静止时保持最小水滴状
+                if (Math.abs(currentSpeed) < 2) dynamicLength = this.length * 0.2;
+                
+                ctx.lineTo(this.x, this.y + dynamicLength);
+                ctx.strokeStyle = `rgba(200, 230, 255, ${this.baseOpacity})`;
+                ctx.lineWidth = 1.5 * this.z;
+                ctx.stroke();
+            }
+        }
+
+        const raindrops = Array.from({ length: 800 }, () => new Raindrop());
+
+        function animateRain() {
+            // 平滑过渡速度 (Lerp 算法)
+            currentSpeed += (targetSpeed - currentSpeed) * 0.05;
+            
+            // 绘制带有拖影的暗夜背景
+            ctx.fillStyle = 'rgba(5, 9, 20, 0.3)';
+            ctx.fillRect(0, 0, width, height);
+
+            raindrops.forEach(drop => {
+                drop.update();
+                drop.draw();
+            });
+
+            requestAnimationFrame(animateRain);
+        }
+        animateRain();
+
+        // ==========================================
+        // 2. 视觉 AI (MediaPipe) 手势识别逻辑
+        // ==========================================
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const statusEl = document.getElementById('status');
+
+        // 手势判断逻辑
+        function detectGesture(landmarks) {
+            // 在 MediaPipe 中，Y坐标越小越靠近屏幕上方。
+            // 我们通过比较 指尖(Tip) 和 关节(PIP) 的 Y坐标 来判断手指是否伸直。
+            const isFingerExtended = (tipIdx, pipIdx) => landmarks[tipIdx].y < landmarks[pipIdx].y;
+
+            const indexOpen = isFingerExtended(8, 6);
+            const middleOpen = isFingerExtended(12, 10);
+            const ringOpen = isFingerExtended(16, 14);
+            const pinkyOpen = isFingerExtended(20, 18);
+
+            // 逻辑分支
+            if (indexOpen && middleOpen && ringOpen && pinkyOpen) {
+                return 'open'; // 张开
+            } else if (!indexOpen && !middleOpen && !ringOpen && !pinkyOpen) {
+                return 'fist'; // 握拳
+            } else if (indexOpen && !middleOpen && !ringOpen && !pinkyOpen) {
+                return 'point'; // 食指指天
+            }
+            return 'unknown';
+        }
+
+        // 处理识别结果的回调函数
+        function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            // 绘制摄像头原画面
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0]; // 只取第一只手
+                
+                // 绘制骨架
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 2});
+                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1, radius: 2});
+
+                // 判断并触发对应的雨滴魔法
+                const gesture = detectGesture(landmarks);
+                
+                if (gesture === 'open') {
+                    statusEl.innerText = "状态：暴雨降临";
+                    targetSpeed = 18;   // 向下加速
+                    baseJitter = 0;
+                } else if (gesture === 'fist') {
+                    statusEl.innerText = "状态：时间静止";
+                    targetSpeed = 0;    // 速度归零
+                    baseJitter = 1.5;   // 开启悬浮颤动
+                } else if (gesture === 'point') {
+                    statusEl.innerText = "状态：雨滴升格倒流";
+                    targetSpeed = -8;   // 负数，反重力向上，速度慢一些更有张力
+                    baseJitter = 0;
+                }
+            } else {
+                // 如果没有检测到手，恢复默认下雨
+                targetSpeed = 15;
+                baseJitter = 0;
+                statusEl.innerText = "未检测到魔法手势";
+            }
+            canvasCtx.restore();
+        }
+
+        // 初始化 MediaPipe Hands 模型
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+        
+        hands.setOptions({
+            maxNumHands: 1, // 只需追踪一只手
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+        
+        hands.onResults(onResults);
+
+        // 启动摄像头
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 320,
+            height: 240
+        });
+        
+        camera.start().then(() => {
+            statusEl.innerText = "AI 视觉已就绪，请举手";
+            statusEl.className = 'active';
+        }).catch(err => {
+            statusEl.innerText = "无法访问摄像头，请检查权限。";
+            statusEl.style.color = "#e74c3c";
+        });
+    </script>
+</body>
+</html>
